@@ -922,7 +922,7 @@ function exportExcel(){
       const nr=new Array(inventoryData.headers.length).fill('');
       nr[bcIdx]=bc;
       if(dateColIndex!==-1) nr[dateColIndex]=stampDateTime;
-      nr.push('FALSE');
+     nr.push('UNKNOWN');
       meta.push({ isDup:false, isVerified:false, isUnmatched:true });
       aoa.push(nr);
     }
@@ -970,13 +970,18 @@ function exportExcel(){
       }
 
       // Scan Result cell emphasised
-      const ra=XLSX.utils.encode_cell({r:rowNum,c:resultCol});
+   const ra=XLSX.utils.encode_cell({r:rowNum,c:resultCol});
       if(!ws[ra]) ws[ra]={t:'s',v:''};
+
+      let resultFont='9C0006', resultFill='FFC7CE'; // default FALSE = red
+      if(m.isVerified){ resultFont='006100'; resultFill='C6EFCE'; }       // TRUE = green
+      else if(m.isUnmatched){ resultFont='7C3A00'; resultFill='FFD8A8'; } // UNKNOWN = orange
+
       ws[ra].s={
         border:thinBorder('D0D0D0'),
         alignment:{horizontal:'center',vertical:'center'},
-        font:{bold:true,sz:11,color:{rgb:m.isVerified?'006100':'9C0006'}},
-        fill:{patternType:'solid',fgColor:{rgb:m.isVerified?'C6EFCE':'FFC7CE'}}
+        font:{bold:true,sz:11,color:{rgb:resultFont}},
+        fill:{patternType:'solid',fgColor:{rgb:resultFill}}
       };
     }
 
