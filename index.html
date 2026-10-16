@@ -1,0 +1,1606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LSC Warehouse Inventory System</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg-primary: #f0f2f5;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --text-primary: #1a1a2e;
+  --text-secondary: #555770;
+  --text-muted: #8888a0;
+  --border-color: #e0e0e8;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --success: #16a34a;
+  --success-bg: #dcfce7;
+  --success-border: #86efac;
+  --danger: #dc2626;
+  --danger-bg: #fee2e2;
+  --danger-border: #fca5a5;
+  --warning: #d97706;
+  --warning-bg: #fef3c7;
+  --warning-border: #fcd34d;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+  --shadow-lg: 0 4px 12px rgba(0,0,0,0.1);
+  --radius: 8px;
+  --radius-lg: 12px;
+}
+[data-theme="dark"] {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-card: #1e293b;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border-color: #334155;
+  --accent: #3b82f6;
+  --accent-hover: #60a5fa;
+  --success: #22c55e;
+  --success-bg: #052e16;
+  --success-border: #166534;
+  --danger: #ef4444;
+  --danger-bg: #450a0a;
+  --danger-border: #7f1d1d;
+  --warning: #f59e0b;
+  --warning-bg: #451a03;
+  --warning-border: #78350f;
+  --shadow: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-lg: 0 4px 12px rgba(0,0,0,0.4);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  transition: background 0.3s, color 0.3s;
+}
+.header {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--shadow);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.header-left { display: flex; align-items: center; gap: 12px; }
+.logo {
+  width: 40px; height: 40px;
+  background: var(--accent);
+  border-radius: var(--radius);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 800; font-size: 16px;
+}
+.header h1 { font-size: 18px; font-weight: 700; }
+.header-subtitle { font-size: 11px; color: var(--text-muted); }
+.header-right { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.btn {
+  padding: 8px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 13px; font-weight: 500;
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 5px;
+  transition: all 0.15s; white-space: nowrap;
+}
+.btn:hover { background: var(--bg-primary); }
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: var(--accent); color: white; border-color: var(--accent); }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-success { background: var(--success); color: white; border-color: var(--success); }
+.btn-danger { background: var(--danger); color: white; border-color: var(--danger); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-icon { padding: 8px; min-width: 36px; justify-content: center; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.main-container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+.alert-bar {
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  color: var(--warning);
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 500;
+}
+.alert-bar.hidden { display: none; }
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+  gap: 12px; margin-bottom: 20px;
+}
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+.stat-label {
+  font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--text-muted);
+  font-weight: 600; margin-bottom: 4px;
+}
+.stat-value { font-size: 28px; font-weight: 700; line-height: 1.2; }
+.stat-value.success { color: var(--success); }
+.stat-value.danger { color: var(--danger); }
+.stat-value.warning { color: var(--warning); }
+.stat-detail { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.progress-bar-container {
+  background: var(--bg-primary);
+  border-radius: 20px; height: 8px;
+  margin-top: 8px; overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%; background: var(--success);
+  border-radius: 20px; transition: width 0.4s ease;
+}
+.scan-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 24px; margin-bottom: 20px;
+  box-shadow: var(--shadow);
+}
+.scan-section h2 {
+  font-size: 16px; font-weight: 600;
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.scan-input-row { display: flex; gap: 10px; margin-bottom: 16px; }
+#barcodeInput {
+  flex: 1; padding: 14px 18px;
+  font-size: 22px;
+  font-family: 'Courier New', monospace;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  outline: none; transition: border-color 0.2s;
+  letter-spacing: 1px;
+}
+#barcodeInput:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+}
+#barcodeInput::placeholder {
+  color: var(--text-muted); font-size: 16px;
+  letter-spacing: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.scan-btn { padding: 14px 28px; font-size: 16px; font-weight: 600; }
+.result-area {
+  min-height: 130px;
+  border-radius: var(--radius-lg);
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; padding: 24px;
+  transition: all 0.3s;
+  border: 2px solid var(--border-color);
+  background: var(--bg-primary);
+}
+.result-area.result-true {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  animation: pulseGreen 0.4s ease;
+}
+.result-area.result-false {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  animation: pulseRed 0.4s ease;
+}
+.result-area.result-duplicate {
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+  animation: pulseYellow 0.4s ease;
+}
+@keyframes pulseGreen {
+  0%{transform:scale(1)} 50%{transform:scale(1.01);box-shadow:0 0 25px rgba(22,163,74,0.3)} 100%{transform:scale(1)}
+}
+@keyframes pulseRed {
+  0%{transform:scale(1)} 50%{transform:scale(1.01);box-shadow:0 0 25px rgba(220,38,38,0.3)} 100%{transform:scale(1)}
+}
+@keyframes pulseYellow {
+  0%{transform:scale(1)} 50%{transform:scale(1.01);box-shadow:0 0 25px rgba(217,119,6,0.3)} 100%{transform:scale(1)}
+}
+.result-status { font-size: 52px; font-weight: 800; letter-spacing: 3px; line-height: 1; }
+.result-status.true-text { color: var(--success); }
+.result-status.false-text { color: var(--danger); }
+.result-status.duplicate-text { color: var(--warning); }
+.result-barcode {
+  font-size: 17px; font-family: 'Courier New', monospace;
+  color: var(--text-secondary); margin-top: 8px;
+  font-weight: 600;
+}
+.result-details {
+  font-size: 13px; color: var(--text-secondary);
+  margin-top: 10px; text-align: center; line-height: 1.6;
+}
+.result-icon { font-size: 36px; margin-bottom: 6px; }
+.history-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 20px; box-shadow: var(--shadow);
+}
+.history-header {
+  display: flex; justify-content: space-between;
+  align-items: center; margin-bottom: 12px;
+  flex-wrap: wrap; gap: 8px;
+}
+.history-header h2 {
+  font-size: 16px; font-weight: 600;
+  display: flex; align-items: center; gap: 8px;
+}
+.filter-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+.filter-tab {
+  padding: 4px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 12px; cursor: pointer;
+  font-weight: 500; transition: all 0.15s;
+}
+.filter-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+.history-list { max-height: 400px; overflow-y: auto; }
+.history-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 13px; transition: background 0.1s;
+}
+.history-item:last-child { border-bottom: none; }
+.history-item:hover { background: var(--bg-primary); }
+.history-badge {
+  padding: 2px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 700;
+  min-width: 75px; text-align: center;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.badge-true { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+.badge-false { background: var(--danger-bg); color: var(--danger); border: 1px solid var(--danger-border); }
+.badge-duplicate { background: var(--warning-bg); color: var(--warning); border: 1px solid var(--warning-border); }
+.history-barcode {
+  font-family: 'Courier New', monospace;
+  font-weight: 600; min-width: 130px;
+}
+.history-desc {
+  flex: 1; color: var(--text-secondary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.history-time { color: var(--text-muted); font-size: 11px; white-space: nowrap; }
+.history-empty { text-align: center; padding: 40px; color: var(--text-muted); font-size: 14px; }
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5); z-index: 1000;
+  align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.active { display: flex; }
+.modal {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  max-width: 700px; width: 100%;
+  max-height: 85vh; overflow-y: auto; padding: 24px;
+}
+.modal h3 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+.modal p { font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+.preview-table-wrapper {
+  max-height: 300px; overflow: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius); margin-top: 12px;
+}
+.preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.preview-table th {
+  background: var(--bg-primary);
+  padding: 8px 10px; text-align: left;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-color);
+  position: sticky; top: 0; white-space: nowrap;
+}
+.preview-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap; max-width: 200px;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.preview-table tr:hover td { background: var(--bg-primary); }
+.preview-info { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+.preview-info span { font-size: 13px; color: var(--text-secondary); }
+.preview-info strong { color: var(--text-primary); }
+.sheet-select-area {
+  margin: 12px 0; padding: 16px;
+  background: var(--bg-primary);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+}
+.sheet-select-area label { font-weight: 600; font-size: 14px; display: block; margin-bottom: 8px; }
+.sheet-select-area select {
+  width: 100%; padding: 10px; font-size: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+.sheet-select-area .sheet-hint {
+  font-size: 12px; color: var(--text-muted); margin-top: 6px;
+}
+.barcode-col-select { margin: 12px 0; }
+.barcode-col-select label { font-weight: 600; font-size: 14px; display: block; margin-bottom: 8px; }
+.barcode-col-select select {
+  width: 100%; padding: 10px; font-size: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+.toast {
+  position: fixed; bottom: 20px; right: 20px;
+  padding: 12px 20px;
+  border-radius: var(--radius); color: white;
+  font-size: 13px; font-weight: 500; z-index: 2000;
+  transform: translateY(100px); opacity: 0;
+  transition: all 0.3s; box-shadow: var(--shadow-lg);
+  max-width: 400px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { background: var(--success); }
+.toast.error { background: var(--danger); }
+.toast.info { background: var(--accent); }
+#fileInput { display: none; }
+.debug-info {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 12px; margin-top: 12px;
+  font-size: 12px; color: var(--text-muted);
+  font-family: monospace; white-space: pre-wrap;
+  max-height: 150px; overflow-y: auto;
+}
+@media (max-width: 768px) {
+  .header { padding: 10px 14px; }
+  .header h1 { font-size: 15px; }
+  .main-container { padding: 12px; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .stat-value { font-size: 22px; }
+  .scan-input-row { flex-direction: column; }
+  .result-status { font-size: 38px; }
+  .history-item { flex-wrap: wrap; gap: 6px; }
+  .filter-tabs { flex-wrap: wrap; }
+  .history-barcode { min-width: unset; }
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <div class="logo">LSC</div>
+    <div>
+      <h1>LSC Warehouse Inventory System</h1>
+      <div class="header-subtitle" id="headerFileInfo">No inventory loaded</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="btn btn-icon" id="themeToggle" title="Toggle theme" aria-label="Toggle theme">🌙</button>
+    <button class="btn btn-icon" id="soundToggle" title="Toggle sound" aria-label="Toggle sound">🔊</button>
+    <button class="btn btn-primary" id="importBtn">📥 Import Excel</button>
+    <button class="btn btn-success" id="exportBtn" disabled>📤 Export</button>
+    <button class="btn btn-danger btn-sm" id="resetBtn" title="Reset all data">🗑️ Reset</button>
+  </div>
+</header>
+
+<input type="file" id="fileInput" accept=".xlsx,.xls">
+
+<main class="main-container">
+  <div class="alert-bar hidden" id="alertBar">
+    <span>⚠️</span><span id="alertText"></span>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Inventory Rows</div>
+      <div class="stat-value" id="statRows">0</div>
+      <div class="stat-detail" id="statFileName">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Unique Barcodes</div>
+      <div class="stat-value" id="statUnique">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Verified ✓</div>
+      <div class="stat-value success" id="statSuccess">0</div>
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill" id="progressBar" style="width:0%"></div>
+      </div>
+      <div class="stat-detail" id="statProgress">0% complete</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Unmatched ✗</div>
+      <div class="stat-value danger" id="statUnmatched">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Duplicate Scans</div>
+      <div class="stat-value warning" id="statDuplicates">0</div>
+    </div>
+  </div>
+
+  <div class="scan-section">
+    <h2>📷 Scan / Enter Barcode</h2>
+    <div class="scan-input-row">
+      <input type="text" id="barcodeInput" placeholder="Scan or type barcode here..." autocomplete="off" autofocus aria-label="Barcode input">
+      <button class="btn btn-primary scan-btn" id="checkBtn">🔍 Check</button>
+    </div>
+    <div class="result-area" id="resultArea" role="status" aria-live="assertive">
+      <div class="result-icon">📦</div>
+      <div style="color:var(--text-muted);font-size:15px;">Ready to scan</div>
+      <div style="color:var(--text-muted);font-size:12px;margin-top:4px;">Scan a barcode or type it manually</div>
+    </div>
+  </div>
+
+  <div class="history-section">
+    <div class="history-header">
+      <h2>📋 Scan History</h2>
+      <div class="filter-tabs">
+        <button class="filter-tab active" data-filter="all">All</button>
+        <button class="filter-tab" data-filter="true">✓ Verified</button>
+        <button class="filter-tab" data-filter="false">✗ Unmatched</button>
+        <button class="filter-tab" data-filter="duplicate">⚠ Duplicates</button>
+      </div>
+    </div>
+    <div class="history-list" id="historyList">
+      <div class="history-empty">No scans yet. Import inventory and start scanning.</div>
+    </div>
+  </div>
+</main>
+
+<!-- Sheet Selection Modal -->
+<div class="modal-overlay" id="sheetModal">
+  <div class="modal">
+    <h3>📄 Select Worksheet</h3>
+    <p>Choose the worksheet containing your inventory data:</p>
+    <div class="sheet-select-area">
+      <label for="sheetSelect">Worksheet:</label>
+      <select id="sheetSelect"></select>
+      <div class="sheet-hint" id="sheetHint"></div>
+    </div>
+    <div id="sheetDebug" class="debug-info" style="display:none;"></div>
+    <div class="modal-actions">
+      <button class="btn" id="cancelSheet">Cancel</button>
+      <button class="btn btn-primary" id="loadSheet">📋 Load This Sheet</button>
+    </div>
+  </div>
+</div>
+
+<!-- Barcode Column Selection Modal -->
+<div class="modal-overlay" id="barcodeColModal">
+  <div class="modal">
+    <h3>🔍 Select Barcode Column</h3>
+    <p>Could not auto-detect the barcode column. Please select which column contains barcodes:</p>
+    <div class="barcode-col-select">
+      <label for="barcodeColSelect">Barcode Column:</label>
+      <select id="barcodeColSelect"></select>
+    </div>
+    <div id="colPreviewArea"></div>
+    <div class="modal-actions">
+      <button class="btn" id="cancelBarcodeCol">Cancel</button>
+      <button class="btn btn-primary" id="confirmBarcodeCol">✓ Use This Column</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import Preview Modal -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal">
+    <h3>📋 Import Preview</h3>
+    <div id="previewContent"></div>
+    <div class="modal-actions">
+      <button class="btn" id="cancelImport">Cancel</button>
+      <button class="btn btn-primary" id="confirmImport">✓ Confirm Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal">
+    <h3 id="confirmTitle">Confirm</h3>
+    <p id="confirmText"></p>
+    <div class="modal-actions">
+      <button class="btn" id="confirmNo">Cancel</button>
+      <button class="btn btn-danger" id="confirmYes">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ==================== CONFIG ====================
+  const DB_NAME = 'LSCWarehouseDB';
+  const DB_VERSION = 3;
+  const STORE_INVENTORY = 'inventory';
+  const STORE_SESSION = 'session';
+  const PREFERRED_SHEET = 'Physicsl Count 12-07-2026';
+
+  // ==================== STATE ====================
+  let db = null;
+  let inventoryData = null;
+  let sessionData = null;
+  let soundEnabled = true;
+  let audioCtx = null;
+  let currentFilter = 'all';
+  let isProcessing = false;
+
+  // Temp import state
+  let tempWorkbook = null;
+  let tempFileName = '';
+  let tempParsedSheet = null;
+
+  // ==================== DOM HELPERS ====================
+  const $ = id => document.getElementById(id);
+  const barcodeInput = $('barcodeInput');
+  const resultArea = $('resultArea');
+  const historyList = $('historyList');
+  const fileInput = $('fileInput');
+
+  function escHtml(str) {
+    if (str === null || str === undefined) return '';
+    const d = document.createElement('div');
+    d.textContent = String(str);
+    return d.innerHTML;
+  }
+
+  function formatTime(iso) {
+    if (!iso) return '';
+    try { return new Date(iso).toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+    catch { return ''; }
+  }
+
+  function formatDateTime(iso) {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-GB') + ' ' + d.toLocaleTimeString('en-GB', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    } catch { return ''; }
+  }
+
+  // ==================== INDEXEDDB ====================
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = e => {
+        const d = e.target.result;
+        if (!d.objectStoreNames.contains(STORE_INVENTORY)) d.createObjectStore(STORE_INVENTORY, {keyPath:'id'});
+        if (!d.objectStoreNames.contains(STORE_SESSION)) d.createObjectStore(STORE_SESSION, {keyPath:'id'});
+      };
+      req.onsuccess = e => { db = e.target.result; resolve(db); };
+      req.onerror = e => reject(e.target.error);
+    });
+  }
+
+  function dbPut(store, data) {
+    return new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(store, 'readwrite');
+        tx.objectStore(store).put(data);
+        tx.oncomplete = () => resolve();
+        tx.onerror = e => reject(e.target.error);
+      } catch(e) { reject(e); }
+    });
+  }
+
+  function dbGet(store, key) {
+    return new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(store, 'readonly');
+        const req = tx.objectStore(store).get(key);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = e => reject(e.target.error);
+      } catch(e) { reject(e); }
+    });
+  }
+
+  function dbClear(store) {
+    return new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(store, 'readwrite');
+        tx.objectStore(store).clear();
+        tx.oncomplete = () => resolve();
+        tx.onerror = e => reject(e.target.error);
+      } catch(e) { reject(e); }
+    });
+  }
+
+  async function saveInventory() {
+    if (!inventoryData || !db) return;
+    try { await dbPut(STORE_INVENTORY, {id:'current', ...inventoryData}); }
+    catch(e) { console.error('Save inventory error:', e); showToast('Storage error saving inventory: ' + e.message, 'error'); }
+  }
+
+  async function saveSession() {
+    if (!sessionData || !db) return;
+    try { await dbPut(STORE_SESSION, {id:'current', ...sessionData}); }
+    catch(e) { console.error('Save session error:', e); showToast('Storage error saving session: ' + e.message, 'error'); }
+  }
+
+  async function loadFromDB() {
+    try {
+      const inv = await dbGet(STORE_INVENTORY, 'current');
+      if (inv) {
+        inventoryData = {
+          fileName: inv.fileName, sheetName: inv.sheetName,
+          headers: inv.headers, rows: inv.rows,
+          barcodeColIndex: inv.barcodeColIndex, importDate: inv.importDate
+        };
+      }
+      const ses = await dbGet(STORE_SESSION, 'current');
+      if (ses) {
+        sessionData = {
+          verifiedBarcodes: ses.verifiedBarcodes || {},
+          unmatchedBarcodes: ses.unmatchedBarcodes || {},
+          history: ses.history || [],
+          duplicateCount: ses.duplicateCount || 0
+        };
+      }
+    } catch(e) { console.error('Load error:', e); }
+  }
+
+  // ==================== AUDIO ====================
+  function initAudio() {
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+      catch(e) { console.warn('Audio unavailable'); }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+
+
+function playTone(freq, dur, type, vol) {
+    if (!soundEnabled || !audioCtx) return;
+    try {
+      const osc = audioCtx.createOscillator();
+      const osc2 = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      osc2.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = type || 'sine';
+      osc2.type = type || 'sine';
+      osc.frequency.value = freq;
+      osc2.frequency.value = freq * 1.5;
+      const v = Math.min(vol || 0.8, 1.0);
+      gain.gain.setValueAtTime(v, audioCtx.currentTime);
+      gain.gain.setValueAtTime(v, audioCtx.currentTime + dur * 0.6);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+      osc.start(audioCtx.currentTime);
+      osc2.start(audioCtx.currentTime);
+      osc.stop(audioCtx.currentTime + dur);
+      osc2.stop(audioCtx.currentTime + dur);
+    } catch(e) {}
+  }
+
+
+function playSuccess() {
+    playTone(1047, 0.3, 'sine', 0.9);
+    setTimeout(() => playTone(1319, 0.3, 'sine', 0.9), 120);
+    setTimeout(() => playTone(1568, 0.4, 'sine', 0.8), 250);
+  }
+
+ function playError() {
+    playTone(180, 0.5, 'sawtooth', 0.9);
+    setTimeout(() => playTone(120, 0.5, 'sawtooth', 0.9), 250);
+    setTimeout(() => playTone(90, 0.6, 'square', 0.8), 500);
+  }
+
+ function playDuplicate() {
+    playTone(800, 0.2, 'square', 0.85);
+    setTimeout(() => playTone(500, 0.2, 'square', 0.85), 200);
+    setTimeout(() => playTone(800, 0.2, 'square', 0.85), 400);
+    setTimeout(() => playTone(500, 0.3, 'square', 0.8), 600);
+  }
+
+  // ==================== TOAST ====================
+  function showToast(msg, type) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.className = 'toast ' + (type||'info') + ' show';
+    clearTimeout(t._tid);
+    t._tid = setTimeout(() => t.classList.remove('show'), 3500);
+  }
+
+  // ==================== THEME ====================
+  function initTheme() {
+    if (localStorage.getItem('lsc_theme') === 'dark') {
+      document.body.setAttribute('data-theme','dark');
+      $('themeToggle').textContent = '☀️';
+    }
+  }
+  function toggleTheme() {
+    const isDark = document.body.getAttribute('data-theme') === 'dark';
+    document.body.setAttribute('data-theme', isDark ? '' : 'dark');
+    if (isDark) document.body.removeAttribute('data-theme');
+    $('themeToggle').textContent = isDark ? '🌙' : '☀️';
+    localStorage.setItem('lsc_theme', isDark ? 'light' : 'dark');
+  }
+
+  // ==================== SOUND TOGGLE ====================
+  function initSoundSetting() {
+    soundEnabled = localStorage.getItem('lsc_sound') !== 'false';
+    updateSoundBtn();
+  }
+  function toggleSound() {
+    initAudio();
+    soundEnabled = !soundEnabled;
+    localStorage.setItem('lsc_sound', soundEnabled);
+    updateSoundBtn();
+    if (soundEnabled) playSuccess();
+  }
+  function updateSoundBtn() {
+    $('soundToggle').textContent = soundEnabled ? '🔊' : '🔇';
+    $('soundToggle').title = soundEnabled ? 'Sound ON' : 'Sound OFF';
+  }
+
+  // ==================== FILE READ ====================
+  function readFile(file) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = e => resolve(new Uint8Array(e.target.result));
+      r.onerror = e => reject(e.target.error);
+      r.readAsArrayBuffer(file);
+    });
+  }
+
+  // ==================== IMPORT FLOW ====================
+  function handleImportClick() {
+    initAudio();
+    fileInput.value = '';
+    fileInput.click();
+  }
+
+  async function handleFileSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.name.match(/\.xlsx?$/i)) {
+      showToast('Please select an Excel file (.xlsx or .xls)', 'error');
+      return;
+    }
+
+    try {
+      showToast('Reading file...', 'info');
+      const data = await readFile(file);
+      const wb = XLSX.read(data, { type:'array', cellText:true, cellDates:false, raw:true });
+
+      if (!wb.SheetNames || wb.SheetNames.length === 0) {
+        showToast('No worksheets found in this file.', 'error');
+        return;
+      }
+
+      tempWorkbook = wb;
+      tempFileName = file.name;
+
+      // Check if preferred sheet exists
+      const prefIdx = wb.SheetNames.findIndex(n =>
+        n.trim().toLowerCase() === PREFERRED_SHEET.toLowerCase()
+      );
+
+      if (prefIdx !== -1) {
+        // Auto-select preferred sheet
+        parseAndPreviewSheet(wb.SheetNames[prefIdx]);
+      } else if (wb.SheetNames.length === 1) {
+        // Only one sheet, use it
+        parseAndPreviewSheet(wb.SheetNames[0]);
+      } else {
+        // Multiple sheets, let user choose
+        showSheetSelector(wb.SheetNames);
+      }
+    } catch(err) {
+      console.error('Import error:', err);
+      showToast('Error reading file: ' + err.message, 'error');
+    }
+  }
+
+  function showSheetSelector(sheetNames) {
+    const sel = $('sheetSelect');
+    sel.innerHTML = '';
+    sheetNames.forEach((name, i) => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = `${i+1}. ${name}`;
+      sel.appendChild(opt);
+    });
+    $('sheetHint').textContent = `Found ${sheetNames.length} worksheet(s). Select the one with inventory data.`;
+    $('sheetModal').classList.add('active');
+  }
+
+  function handleLoadSheet() {
+    const sheetName = $('sheetSelect').value;
+    $('sheetModal').classList.remove('active');
+    if (sheetName && tempWorkbook) {
+      parseAndPreviewSheet(sheetName);
+    }
+  }
+
+  function cancelSheetSelect() {
+    $('sheetModal').classList.remove('active');
+    tempWorkbook = null;
+    tempFileName = '';
+    barcodeInput.focus();
+  }
+
+  // ==================== PARSE SHEET ====================
+  function parseAndPreviewSheet(sheetName) {
+    const sheet = tempWorkbook.Sheets[sheetName];
+    if (!sheet) {
+      showToast(`Worksheet "${sheetName}" is empty or unreadable.`, 'error');
+      return;
+    }
+
+    const rawData = XLSX.utils.sheet_to_json(sheet, { header:1, raw:true, defval:'' });
+
+    if (!rawData || rawData.length < 1) {
+      showToast('Worksheet contains no data.', 'error');
+      return;
+    }
+
+    // Find header row: first row with at least 2 non-empty cells
+    let headerRowIndex = -1;
+    for (let i = 0; i < Math.min(rawData.length, 20); i++) {
+      const row = rawData[i];
+      if (!row) continue;
+      const nonEmpty = row.filter(c => c !== null && c !== undefined && String(c).trim() !== '').length;
+      if (nonEmpty >= 2) {
+        headerRowIndex = i;
+        break;
+      }
+    }
+
+    if (headerRowIndex === -1) {
+      // Fallback to first row
+      headerRowIndex = 0;
+    }
+
+    // Build headers - convert all to strings, handle undefined
+    const rawHeaders = rawData[headerRowIndex];
+    const maxCols = rawData.reduce((max, row) => Math.max(max, row ? row.length : 0), 0);
+    const headers = [];
+    for (let j = 0; j < maxCols; j++) {
+      const h = rawHeaders && rawHeaders[j] !== null && rawHeaders[j] !== undefined
+        ? String(rawHeaders[j]).trim() : `Column_${j+1}`;
+      headers.push(h || `Column_${j+1}`);
+    }
+
+    // Extract data rows
+    const rows = [];
+    for (let i = headerRowIndex + 1; i < rawData.length; i++) {
+      const row = rawData[i];
+      if (!row) continue;
+      // Check if row has any non-empty cell
+      const hasData = row.some(c => c !== null && c !== undefined && String(c).trim() !== '');
+      if (!hasData) continue;
+      const paddedRow = [];
+      for (let j = 0; j < headers.length; j++) {
+        const val = (row[j] !== null && row[j] !== undefined) ? String(row[j]) : '';
+        paddedRow.push(val);
+      }
+      rows.push(paddedRow);
+    }
+
+    if (rows.length === 0) {
+      showToast('No data rows found after the header row.', 'error');
+      return;
+    }
+
+    // Try to auto-detect barcode column
+    let barcodeColIndex = autoDetectBarcodeCol(headers);
+
+    tempParsedSheet = {
+      fileName: tempFileName,
+      sheetName: sheetName,
+      headers: headers,
+      rows: rows,
+      barcodeColIndex: barcodeColIndex,
+      importDate: new Date().toISOString()
+    };
+
+    if (barcodeColIndex === -1) {
+      // Ask user to select barcode column
+      showBarcodeColSelector(headers, rows);
+    } else {
+      showImportPreview(tempParsedSheet);
+    }
+  }
+
+  function autoDetectBarcodeCol(headers) {
+    // Exact matches first (case-insensitive)
+    const exactMatches = ['barcode', 'bar code', 'bar_code', 'barcodes'];
+    for (let i = 0; i < headers.length; i++) {
+      const h = headers[i].toLowerCase().trim();
+      if (exactMatches.includes(h)) return i;
+    }
+    // Broader exact matches
+    const broaderMatches = ['upc', 'ean', 'sku', 'item code', 'itemcode', 'item_code', 'product code', 'code'];
+    for (let i = 0; i < headers.length; i++) {
+      const h = headers[i].toLowerCase().trim();
+      if (broaderMatches.includes(h)) return i;
+    }
+    // Partial match
+    for (let i = 0; i < headers.length; i++) {
+      const h = headers[i].toLowerCase().trim();
+      if (h.includes('barcode') || h.includes('bar code') || h.includes('bar_code')) return i;
+    }
+    return -1;
+  }
+
+  // ==================== BARCODE COL SELECTOR ====================
+  function showBarcodeColSelector(headers, rows) {
+    const sel = $('barcodeColSelect');
+    sel.innerHTML = '';
+    headers.forEach((h, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      // Show sample value
+      const sample = rows.length > 0 ? rows[0][i] : '';
+      opt.textContent = `${h} (sample: "${sample}")`;
+      sel.appendChild(opt);
+    });
+
+    // Show sample rows
+    let html = '<div class="preview-table-wrapper" style="margin-top:12px;"><table class="preview-table"><thead><tr>';
+    headers.forEach(h => { html += `<th>${escHtml(h)}</th>`; });
+    html += '</tr></thead><tbody>';
+    rows.slice(0, 5).forEach(row => {
+      html += '<tr>';
+      row.forEach(c => { html += `<td>${escHtml(c)}</td>`; });
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    $('colPreviewArea').innerHTML = html;
+
+    $('barcodeColModal').classList.add('active');
+  }
+
+  function handleConfirmBarcodeCol() {
+    const idx = parseInt($('barcodeColSelect').value);
+    $('barcodeColModal').classList.remove('active');
+    if (tempParsedSheet && !isNaN(idx)) {
+      tempParsedSheet.barcodeColIndex = idx;
+      showImportPreview(tempParsedSheet);
+    }
+  }
+
+  function cancelBarcodeCol() {
+    $('barcodeColModal').classList.remove('active');
+    tempParsedSheet = null;
+    tempWorkbook = null;
+    barcodeInput.focus();
+  }
+
+  // ==================== IMPORT PREVIEW ====================
+  function showImportPreview(data) {
+    const uniqueBarcodes = new Set();
+    let emptyBarcodes = 0;
+    data.rows.forEach(row => {
+      const bc = String(row[data.barcodeColIndex]).trim();
+      if (bc) uniqueBarcodes.add(bc);
+      else emptyBarcodes++;
+    });
+
+    let html = '<div class="preview-info">';
+    html += `<span>📄 File: <strong>${escHtml(data.fileName)}</strong></span>`;
+    html += `<span>📑 Sheet: <strong>${escHtml(data.sheetName)}</strong></span>`;
+    html += `<span>📊 Rows: <strong>${data.rows.length}</strong></span>`;
+    html += `<span>📐 Columns: <strong>${data.headers.length}</strong></span>`;
+    html += `<span>🔢 Unique Barcodes: <strong>${uniqueBarcodes.size}</strong></span>`;
+    html += `<span>📌 Barcode Column: <strong>${escHtml(data.headers[data.barcodeColIndex])}</strong> (col ${data.barcodeColIndex+1})</span>`;
+    if (emptyBarcodes > 0) {
+      html += `<span>⚠️ Empty barcodes: <strong>${emptyBarcodes}</strong></span>`;
+    }
+    html += '</div>';
+
+    // Preview table
+    html += '<div class="preview-table-wrapper"><table class="preview-table"><thead><tr>';
+    data.headers.forEach((h, i) => {
+      const mark = i === data.barcodeColIndex ? ' ★' : '';
+      html += `<th>${escHtml(h)}${mark}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+    const previewRows = data.rows.slice(0, 25);
+    previewRows.forEach(row => {
+      html += '<tr>';
+      row.forEach((cell, i) => {
+        const hl = i === data.barcodeColIndex ? ' style="font-weight:700;color:var(--accent)"' : '';
+        html += `<td${hl}>${escHtml(cell)}</td>`;
+      });
+      html += '</tr>';
+    });
+    if (data.rows.length > 25) {
+      html += `<tr><td colspan="${data.headers.length}" style="text-align:center;color:var(--text-muted);font-style:italic">... and ${data.rows.length-25} more rows</td></tr>`;
+    }
+    html += '</tbody></table></div>';
+
+    if (inventoryData && inventoryData.rows && inventoryData.rows.length > 0) {
+      html += '<div style="margin-top:12px;padding:10px;background:var(--warning-bg);border:1px solid var(--warning-border);border-radius:var(--radius);color:var(--warning);font-size:13px;">⚠️ <strong>Warning:</strong> This will replace the current inventory ('
+        + escHtml(inventoryData.fileName) + ', ' + inventoryData.rows.length + ' rows) and reset all scan progress.</div>';
+    }
+
+    $('previewContent').innerHTML = html;
+    $('importModal').classList.add('active');
+  }
+
+  async function confirmImport() {
+    if (!tempParsedSheet) return;
+
+    inventoryData = {
+      fileName: tempParsedSheet.fileName,
+      sheetName: tempParsedSheet.sheetName,
+      headers: tempParsedSheet.headers,
+      rows: tempParsedSheet.rows,
+      barcodeColIndex: tempParsedSheet.barcodeColIndex,
+      importDate: tempParsedSheet.importDate
+    };
+
+    sessionData = {
+      verifiedBarcodes: {},
+      unmatchedBarcodes: {},
+      history: [],
+      duplicateCount: 0
+    };
+
+    tempParsedSheet = null;
+    tempWorkbook = null;
+    tempFileName = '';
+
+    try {
+      await saveInventory();
+      await saveSession();
+    } catch(e) {
+      showToast('Error saving: ' + e.message, 'error');
+    }
+
+    $('importModal').classList.remove('active');
+    updateUI();
+    resetResultArea();
+    showToast(`✓ Imported ${inventoryData.rows.length} rows from "${inventoryData.fileName}" → Sheet: "${inventoryData.sheetName}"`, 'success');
+    barcodeInput.focus();
+  }
+
+  function cancelImport() {
+    tempParsedSheet = null;
+    tempWorkbook = null;
+    tempFileName = '';
+    $('importModal').classList.remove('active');
+    barcodeInput.focus();
+  }
+
+  // ==================== BARCODE PROCESSING ====================
+  function processBarcode(rawInput) {
+    if (isProcessing) return;
+    isProcessing = true;
+    initAudio();
+
+    try {
+      const barcode = String(rawInput || '').trim();
+
+      if (!barcode) {
+        isProcessing = false;
+        barcodeInput.value = '';
+        barcodeInput.focus();
+        return;
+      }
+
+      if (!inventoryData || !inventoryData.rows || inventoryData.rows.length === 0) {
+        showResultDisplay('error', '⚠️', 'NO INVENTORY', barcode, 'Import an Excel inventory file first.');
+        playError();
+        isProcessing = false;
+        barcodeInput.value = '';
+        barcodeInput.focus();
+        return;
+      }
+
+      // Check if already verified (duplicate of TRUE)
+      if (sessionData.verifiedBarcodes[barcode]) {
+        const prev = sessionData.verifiedBarcodes[barcode];
+        sessionData.duplicateCount++;
+        sessionData.history.unshift({
+          time: new Date().toISOString(),
+          barcode: barcode,
+          status: 'duplicate',
+          description: prev.description || '',
+          details: `Already verified at ${formatTime(prev.time)}`,
+          previousScanTime: prev.time
+        });
+        showResultDisplay('duplicate', '⚠️', 'DUPLICATE', barcode,
+          `Already scanned at ${formatTime(prev.time)}` + (prev.description ? '\n' + prev.description : ''));
+        playDuplicate();
+        saveSession();
+        updateUI();
+        isProcessing = false;
+        barcodeInput.value = '';
+        barcodeInput.focus();
+        return;
+      }
+
+      // Check if already recorded as unmatched (duplicate of FALSE)
+      if (sessionData.unmatchedBarcodes[barcode]) {
+        const info = sessionData.unmatchedBarcodes[barcode];
+        info.count++;
+        info.lastScan = new Date().toISOString();
+        sessionData.duplicateCount++;
+        sessionData.history.unshift({
+          time: new Date().toISOString(),
+          barcode: barcode,
+          status: 'duplicate',
+          description: `Unmatched (attempt #${info.count})`,
+          details: `First recorded at ${formatTime(info.firstScan)}`,
+          previousScanTime: info.firstScan
+        });
+        showResultDisplay('duplicate', '⚠️', 'DUPLICATE', barcode,
+          `Unmatched barcode already recorded\nAttempt #${info.count}`);
+        playDuplicate();
+        saveSession();
+        updateUI();
+        isProcessing = false;
+        barcodeInput.value = '';
+        barcodeInput.focus();
+        return;
+      }
+
+      // Search inventory
+      const matches = [];
+      const bcIdx = inventoryData.barcodeColIndex;
+      for (let i = 0; i < inventoryData.rows.length; i++) {
+        const rowBc = String(inventoryData.rows[i][bcIdx]).trim();
+        if (rowBc === barcode) {
+          matches.push(inventoryData.rows[i]);
+        }
+      }
+
+      if (matches.length > 0) {
+        // TRUE
+        const first = matches[0];
+        const desc = findFieldValue(first, ['description','desc','item description','product','item name','name','item','product description','product name']);
+        const boxNum = findFieldValue(first, ['box','box number','box no','box#','box num','carton','carton no']);
+        const palletNum = findFieldValue(first, ['pallet','pallet number','pallet no','pallet#','pallet num']);
+        const qty = findFieldValue(first, ['physical qty','physical quantity','qty','quantity','phys qty','count','pcs','units']);
+
+        let detailParts = [];
+        if (desc) detailParts.push(desc);
+        if (qty) detailParts.push('Qty: ' + qty);
+        if (boxNum) detailParts.push('Box: ' + boxNum);
+        if (palletNum) detailParts.push('Pallet: ' + palletNum);
+        if (matches.length > 1) detailParts.push(`(${matches.length} rows in inventory)`);
+        const details = detailParts.join(' | ');
+
+        sessionData.verifiedBarcodes[barcode] = {
+          time: new Date().toISOString(),
+          description: desc || '',
+          details: details,
+          matchCount: matches.length
+        };
+        sessionData.history.unshift({
+          time: new Date().toISOString(),
+          barcode: barcode,
+          status: 'true',
+          description: desc || '',
+          details: details
+        });
+
+        showResultDisplay('true', '✓', 'TRUE', barcode, details);
+        playSuccess();
+      } else {
+        // FALSE
+        sessionData.unmatchedBarcodes[barcode] = {
+          firstScan: new Date().toISOString(),
+          lastScan: new Date().toISOString(),
+          count: 1
+        };
+        sessionData.history.unshift({
+          time: new Date().toISOString(),
+          barcode: barcode,
+          status: 'false',
+          description: 'Not found in inventory',
+          details: ''
+        });
+
+        showResultDisplay('false', '✗', 'FALSE', barcode, 'Barcode not found in inventory');
+        playError();
+      }
+
+      saveSession();
+      updateUI();
+    } finally {
+      isProcessing = false;
+      barcodeInput.value = '';
+      barcodeInput.focus();
+    }
+  }
+
+  function findFieldValue(row, aliases) {
+    if (!inventoryData || !inventoryData.headers) return '';
+    const hdrs = inventoryData.headers;
+    // Exact match
+    for (const alias of aliases) {
+      for (let i = 0; i < hdrs.length; i++) {
+        if (hdrs[i].toLowerCase().trim() === alias.toLowerCase()) {
+          const v = row[i];
+          if (v !== null && v !== undefined && String(v).trim() !== '') return String(v).trim();
+        }
+      }
+    }
+    // Partial match
+    for (const alias of aliases) {
+      for (let i = 0; i < hdrs.length; i++) {
+        if (hdrs[i].toLowerCase().includes(alias.toLowerCase())) {
+          const v = row[i];
+          if (v !== null && v !== undefined && String(v).trim() !== '') return String(v).trim();
+        }
+      }
+    }
+    return '';
+  }
+
+  function showResultDisplay(type, icon, status, barcode, details) {
+    let cls = '', sCls = '';
+    if (type === 'true') { cls = 'result-true'; sCls = 'true-text'; }
+    else if (type === 'false') { cls = 'result-false'; sCls = 'false-text'; }
+    else if (type === 'duplicate') { cls = 'result-duplicate'; sCls = 'duplicate-text'; }
+
+    // Force re-animation
+    resultArea.className = 'result-area';
+    void resultArea.offsetWidth;
+    resultArea.className = 'result-area ' + cls;
+
+    const detailsHtml = details ? escHtml(details).replace(/\n/g,'<br>').replace(/ \| /g, ' &nbsp;•&nbsp; ') : '';
+
+    resultArea.innerHTML = `
+      <div class="result-icon">${icon}</div>
+      <div class="result-status ${sCls}" aria-label="${status}">${status}</div>
+      <div class="result-barcode">${escHtml(barcode)}</div>
+      ${detailsHtml ? `<div class="result-details">${detailsHtml}</div>` : ''}
+    `;
+  }
+
+  function resetResultArea() {
+    resultArea.className = 'result-area';
+    resultArea.innerHTML = `
+      <div class="result-icon">📦</div>
+      <div style="color:var(--text-muted);font-size:15px;">Ready to scan</div>
+      <div style="color:var(--text-muted);font-size:12px;margin-top:4px;">Scan a barcode or type it manually</div>
+    `;
+  }
+
+  // ==================== EXPORT ====================
+  function exportExcel() {
+    if (!inventoryData || !inventoryData.rows || inventoryData.rows.length === 0) {
+      showToast('No inventory to export.', 'error');
+      return;
+    }
+    initAudio();
+
+    try {
+      const headers = [...inventoryData.headers, 'Scan Result'];
+
+      // Find date column
+      let dateColIndex = -1;
+      const dateAliases = ['inventory date','date','count date','inv date','stock date','stock count date'];
+      for (let i = 0; i < inventoryData.headers.length; i++) {
+        const h = inventoryData.headers[i].toLowerCase().trim();
+        // Exact
+        if (dateAliases.includes(h)) { dateColIndex = i; break; }
+        // Partial with "date" and "inventory" or "count"
+        if (h.includes('date') && (h.includes('inventory') || h.includes('count') || h.includes('stock'))) {
+          dateColIndex = i; break;
+        }
+      }
+
+      // Saudi date (UTC+3)
+      const now = new Date();
+      const saudiMs = now.getTime() + (3 * 60 + now.getTimezoneOffset()) * 60000;
+      const saudi = new Date(saudiMs);
+      const dd = String(saudi.getDate()).padStart(2,'0');
+      const mm = String(saudi.getMonth()+1).padStart(2,'0');
+      const yyyy = saudi.getFullYear();
+      const currentDate = `${dd}-${mm}-${yyyy}`;
+
+      const exportRows = [headers];
+
+      // Original rows
+      for (const row of inventoryData.rows) {
+        const nr = [...row];
+        // Pad if needed
+        while (nr.length < inventoryData.headers.length) nr.push('');
+
+        if (dateColIndex !== -1) nr[dateColIndex] = currentDate;
+
+        const bc = String(row[inventoryData.barcodeColIndex]).trim();
+        nr.push(bc && sessionData.verifiedBarcodes[bc] ? 'TRUE' : 'FALSE');
+        exportRows.push(nr);
+      }
+
+      // Unmatched barcodes
+      for (const [bc, info] of Object.entries(sessionData.unmatchedBarcodes)) {
+        const nr = new Array(inventoryData.headers.length).fill('');
+        nr[inventoryData.barcodeColIndex] = bc;
+        if (dateColIndex !== -1) nr[dateColIndex] = currentDate;
+        nr.push('FALSE');
+        exportRows.push(nr);
+      }
+
+      const ws = XLSX.utils.aoa_to_sheet(exportRows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, inventoryData.sheetName || 'Inventory');
+
+      const fn = `LSC_Warehouse_Inventory_${currentDate}.xlsx`;
+      XLSX.writeFile(wb, fn);
+      showToast(`✓ Exported: ${fn}`, 'success');
+      playSuccess();
+    } catch(e) {
+      console.error('Export error:', e);
+      showToast('Export failed: ' + e.message, 'error');
+    }
+  }
+
+  // ==================== RESET ====================
+  function handleReset() {
+    showConfirm('Reset All Data',
+      'This will delete the imported inventory and all scan history. Export your results first if needed. This cannot be undone.',
+      async () => {
+        inventoryData = null;
+        sessionData = { verifiedBarcodes:{}, unmatchedBarcodes:{}, history:[], duplicateCount:0 };
+        try { await dbClear(STORE_INVENTORY); await dbClear(STORE_SESSION); } catch(e) { console.error(e); }
+        updateUI();
+        resetResultArea();
+        showToast('All data cleared.', 'info');
+        barcodeInput.focus();
+      }
+    );
+  }
+
+  // ==================== CONFIRM MODAL ====================
+  let confirmCb = null;
+  function showConfirm(title, text, cb) {
+    $('confirmTitle').textContent = title;
+    $('confirmText').textContent = text;
+    confirmCb = cb;
+    $('confirmModal').classList.add('active');
+  }
+  function handleConfirmYes() {
+    $('confirmModal').classList.remove('active');
+    if (confirmCb) confirmCb();
+    confirmCb = null;
+  }
+  function handleConfirmNo() {
+    $('confirmModal').classList.remove('active');
+    confirmCb = null;
+    barcodeInput.focus();
+  }
+
+  // ==================== UI UPDATE ====================
+  function updateUI() {
+    if (!sessionData) sessionData = { verifiedBarcodes:{}, unmatchedBarcodes:{}, history:[], duplicateCount:0 };
+
+    const has = inventoryData && inventoryData.rows && inventoryData.rows.length > 0;
+
+    if (has) {
+      $('statRows').textContent = inventoryData.rows.length;
+      $('statFileName').textContent = inventoryData.fileName;
+      $('headerFileInfo').textContent = `📄 ${inventoryData.fileName} → ${inventoryData.sheetName || ''}`;
+
+      const uniques = new Set();
+      inventoryData.rows.forEach(r => {
+        const bc = String(r[inventoryData.barcodeColIndex]).trim();
+        if (bc) uniques.add(bc);
+      });
+      const totalUnique = uniques.size;
+      $('statUnique').textContent = totalUnique;
+
+      const verified = Object.keys(sessionData.verifiedBarcodes).length;
+      $('statSuccess').textContent = verified;
+
+      const pct = totalUnique > 0 ? Math.round((verified/totalUnique)*100) : 0;
+      $('progressBar').style.width = pct + '%';
+      $('statProgress').textContent = `${verified}/${totalUnique} (${pct}%)`;
+
+      $('exportBtn').disabled = false;
+      $('alertBar').classList.add('hidden');
+    } else {
+      $('statRows').textContent = '0';
+      $('statUnique').textContent = '0';
+      $('statSuccess').textContent = '0';
+      $('statFileName').textContent = '—';
+      $('headerFileInfo').textContent = 'No inventory loaded';
+      $('progressBar').style.width = '0%';
+      $('statProgress').textContent = '0% complete';
+      $('exportBtn').disabled = true;
+      $('alertBar').classList.remove('hidden');
+      $('alertText').textContent = 'No inventory loaded. Click "Import Excel" to begin.';
+    }
+
+    $('statUnmatched').textContent = Object.keys(sessionData.unmatchedBarcodes).length;
+    $('statDuplicates').textContent = sessionData.duplicateCount;
+
+    renderHistory();
+  }
+
+  function renderHistory() {
+    if (!sessionData || sessionData.history.length === 0) {
+      historyList.innerHTML = '<div class="history-empty">No scans yet. Import inventory and start scanning.</div>';
+      return;
+    }
+
+    const filtered = currentFilter === 'all'
+      ? sessionData.history
+      : sessionData.history.filter(h => h.status === currentFilter);
+
+    if (filtered.length === 0) {
+      historyList.innerHTML = `<div class="history-empty">No "${currentFilter}" scans.</div>`;
+      return;
+    }
+
+    const display = filtered.slice(0, 150);
+    historyList.innerHTML = display.map(h => {
+      let bc, bt;
+      if (h.status === 'true') { bc = 'badge-true'; bt = '✓ TRUE'; }
+      else if (h.status === 'false') { bc = 'badge-false'; bt = '✗ FALSE'; }
+      else { bc = 'badge-duplicate'; bt = '⚠ DUP'; }
+
+      return `<div class="history-item">
+        <span class="history-badge ${bc}">${bt}</span>
+        <span class="history-barcode">${escHtml(h.barcode)}</span>
+        <span class="history-desc">${escHtml(h.description || h.details || '')}</span>
+        <span class="history-time">${formatTime(h.time)}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // ==================== EVENTS ====================
+  function setupEvents() {
+    $('importBtn').addEventListener('click', handleImportClick);
+    fileInput.addEventListener('change', handleFileSelect);
+    $('exportBtn').addEventListener('click', exportExcel);
+    $('resetBtn').addEventListener('click', handleReset);
+    $('themeToggle').addEventListener('click', toggleTheme);
+    $('soundToggle').addEventListener('click', toggleSound);
+    $('checkBtn').addEventListener('click', () => processBarcode(barcodeInput.value));
+
+    // Sheet modal
+    $('loadSheet').addEventListener('click', handleLoadSheet);
+    $('cancelSheet').addEventListener('click', cancelSheetSelect);
+
+    // Barcode column modal
+    $('confirmBarcodeCol').addEventListener('click', handleConfirmBarcodeCol);
+    $('cancelBarcodeCol').addEventListener('click', cancelBarcodeCol);
+
+    // Import modal
+    $('confirmImport').addEventListener('click', confirmImport);
+    $('cancelImport').addEventListener('click', cancelImport);
+
+    // Confirm modal
+    $('confirmYes').addEventListener('click', handleConfirmYes);
+    $('confirmNo').addEventListener('click', handleConfirmNo);
+
+    // Barcode input - Enter key
+    barcodeInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopPropagation();
+        processBarcode(barcodeInput.value);
+      }
+    });
+
+    // Init audio on first user interaction
+    ['click','keydown','touchstart'].forEach(evt => {
+      document.addEventListener(evt, () => initAudio(), { once: true });
+    });
+
+    // Filter tabs
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentFilter = tab.getAttribute('data-filter');
+        renderHistory();
+      });
+    });
+
+    // Close modals on overlay click
+    ['importModal','sheetModal','barcodeColModal','confirmModal'].forEach(id => {
+      $(id).addEventListener('click', e => {
+        if (e.target === $(id)) {
+          $(id).classList.remove('active');
+          tempParsedSheet = null;
+          barcodeInput.focus();
+        }
+      });
+    });
+
+    // Escape key
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        ['importModal','sheetModal','barcodeColModal','confirmModal'].forEach(id => {
+          if ($(id).classList.contains('active')) {
+            $(id).classList.remove('active');
+          }
+        });
+        tempParsedSheet = null;
+        barcodeInput.focus();
+      }
+    });
+
+    // Keep focus on barcode input
+    document.addEventListener('click', e => {
+      const tag = e.target.tagName.toLowerCase();
+      const interactive = ['button','input','select','textarea','a','option'];
+      const inModal = e.target.closest('.modal-overlay');
+      if (!interactive.includes(tag) && !inModal) {
+        setTimeout(() => barcodeInput.focus(), 50);
+      }
+    });
+  }
+
+  // ==================== INIT ====================
+  async function init() {
+    initTheme();
+    initSoundSetting();
+
+    try {
+      await openDB();
+      await loadFromDB();
+    } catch(e) {
+      console.error('DB init error:', e);
+      showToast('Browser storage error. Data may not persist.', 'error');
+    }
+
+    if (!sessionData) {
+      sessionData = { verifiedBarcodes:{}, unmatchedBarcodes:{}, history:[], duplicateCount:0 };
+    }
+
+    setupEvents();
+    updateUI();
+
+    if (inventoryData && inventoryData.rows && inventoryData.rows.length > 0) {
+      showToast(`Session restored: ${inventoryData.fileName} (${inventoryData.rows.length} rows)`, 'info');
+    }
+
+    barcodeInput.focus();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(() => console.log('SW registered'))
+      .catch(err => console.log('SW failed:', err));
+  });
+}
+</script>
+</body>
+</html>
