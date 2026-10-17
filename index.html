@@ -3,1218 +3,1281 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LSC Warehouse Inventory System</title>
-
-<!-- Excel engine WITH cell-style support (free, drop-in SheetJS fork) -->
+<title>LSC Warehouse System</title>
 <script src="xlsx.bundle.js"></script>
-
 <style>
-:root{
-  --bg-primary:#f0f2f5; --bg-secondary:#fff; --bg-card:#fff;
-  --text-primary:#1a1a2e; --text-secondary:#555770; --text-muted:#8888a0;
-  --border-color:#e0e0e8; --accent:#2563eb; --accent-hover:#1d4ed8;
-  --success:#16a34a; --success-bg:#dcfce7; --success-border:#86efac;
-  --danger:#dc2626; --danger-bg:#fee2e2; --danger-border:#fca5a5;
-  --warning:#d97706; --warning-bg:#fef3c7; --warning-border:#fcd34d;
-  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
-  --shadow-lg:0 4px 12px rgba(0,0,0,.1);
-  --radius:8px; --radius-lg:12px;
+:root {
+  --bg: #0f172a; --surface: #1e293b; --surface2: #334155;
+  --border: #475569; --text: #f1f5f9; --text2: #94a3b8;
+  --primary: #3b82f6; --primary-h: #2563eb; --success: #22c55e;
+  --error: #ef4444; --warning: #f59e0b; --danger: #dc2626;
+  --cyan: #06b6d4; --sidebar-w: 260px;
 }
-[data-theme="dark"]{
-  --bg-primary:#0f172a; --bg-secondary:#1e293b; --bg-card:#1e293b;
-  --text-primary:#f1f5f9; --text-secondary:#94a3b8; --text-muted:#64748b;
-  --border-color:#334155; --accent:#3b82f6; --accent-hover:#60a5fa;
-  --success:#22c55e; --success-bg:#052e16; --success-border:#166534;
-  --danger:#ef4444; --danger-bg:#450a0a; --danger-border:#7f1d1d;
-  --warning:#f59e0b; --warning-bg:#451a03; --warning-border:#78350f;
-  --shadow:0 1px 3px rgba(0,0,0,.3); --shadow-lg:0 4px 12px rgba(0,0,0,.4);
+:root.light-mode {
+  --bg: #f8fafc; --surface: #ffffff; --surface2: #f1f5f9;
+  --border: #cbd5e1; --text: #0f172a; --text2: #475569;
 }
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-  background:var(--bg-primary);color:var(--text-primary);min-height:100vh;transition:background .3s,color .3s}
-.header{background:var(--bg-secondary);border-bottom:1px solid var(--border-color);padding:12px 24px;
-  display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow);
-  position:sticky;top:0;z-index:100;flex-wrap:wrap;gap:8px}
-.header-left{display:flex;align-items:center;gap:12px}
-.logo{width:40px;height:40px;background:var(--accent);border-radius:var(--radius);
-  display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px}
-.header h1{font-size:18px;font-weight:700}
-.header-subtitle{font-size:11px;color:var(--text-muted)}
-.header-right{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.btn{padding:8px 14px;border:1px solid var(--border-color);border-radius:var(--radius);
-  background:var(--bg-secondary);color:var(--text-primary);font-size:13px;font-weight:500;cursor:pointer;
-  display:inline-flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap}
-.btn:hover{background:var(--bg-primary)}
-.btn:active{transform:scale(.98)}
-.btn-primary{background:var(--accent);color:#fff;border-color:var(--accent)}
-.btn-primary:hover{background:var(--accent-hover)}
-.btn-success{background:var(--success);color:#fff;border-color:var(--success)}
-.btn-danger{background:var(--danger);color:#fff;border-color:var(--danger)}
-.btn-sm{padding:5px 10px;font-size:12px}
-.btn-icon{padding:8px;min-width:36px;justify-content:center}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.main-container{max-width:1200px;margin:0 auto;padding:20px}
-.alert-bar{background:var(--warning-bg);border:1px solid var(--warning-border);color:var(--warning);
-  padding:10px 16px;border-radius:var(--radius);margin-bottom:16px;display:flex;align-items:center;
-  gap:8px;font-size:13px;font-weight:500}
-.alert-bar.hidden{display:none}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:12px;margin-bottom:20px}
-.stat-card{background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-lg);
-  padding:16px;box-shadow:var(--shadow)}
-.stat-label{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);
-  font-weight:600;margin-bottom:4px}
-.stat-value{font-size:28px;font-weight:700;line-height:1.2}
-.stat-value.success{color:var(--success)}
-.stat-value.danger{color:var(--danger)}
-.stat-value.warning{color:var(--warning)}
-.stat-detail{font-size:11px;color:var(--text-muted);margin-top:2px;word-break:break-all}
-.progress-bar-container{background:var(--bg-primary);border-radius:20px;height:8px;margin-top:8px;overflow:hidden}
-.progress-bar-fill{height:100%;background:var(--success);border-radius:20px;transition:width .4s ease}
-.scan-section{background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-lg);
-  padding:24px;margin-bottom:20px;box-shadow:var(--shadow)}
-.scan-section h2{font-size:16px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-.scan-input-row{display:flex;gap:10px;margin-bottom:16px}
-#barcodeInput{flex:1;padding:14px 18px;font-size:22px;font-family:'Courier New',monospace;
-  border:2px solid var(--border-color);border-radius:var(--radius);background:var(--bg-primary);
-  color:var(--text-primary);outline:none;transition:border-color .2s;letter-spacing:1px}
-#barcodeInput:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
-#barcodeInput::placeholder{color:var(--text-muted);font-size:16px;letter-spacing:0;
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
-.scan-btn{padding:14px 28px;font-size:16px;font-weight:600}
-.result-area{min-height:140px;border-radius:var(--radius-lg);display:flex;align-items:center;
-  justify-content:center;flex-direction:column;padding:24px;transition:all .3s;
-  border:2px solid var(--border-color);background:var(--bg-primary)}
-.result-area.result-true{background:var(--success-bg);border-color:var(--success-border);animation:pG .4s ease}
-.result-area.result-false{background:var(--danger-bg);border-color:var(--danger-border);animation:pR .4s ease}
-.result-area.result-duplicate{background:var(--warning-bg);border-color:var(--warning-border);animation:pY .4s ease}
-@keyframes pG{0%{transform:scale(1)}50%{transform:scale(1.01);box-shadow:0 0 25px rgba(22,163,74,.3)}100%{transform:scale(1)}}
-@keyframes pR{0%{transform:scale(1)}50%{transform:scale(1.01);box-shadow:0 0 25px rgba(220,38,38,.3)}100%{transform:scale(1)}}
-@keyframes pY{0%{transform:scale(1)}50%{transform:scale(1.01);box-shadow:0 0 25px rgba(217,119,6,.3)}100%{transform:scale(1)}}
-.result-status{font-size:52px;font-weight:800;letter-spacing:3px;line-height:1}
-.result-status.true-text{color:var(--success)}
-.result-status.false-text{color:var(--danger)}
-.result-status.duplicate-text{color:var(--warning)}
-.result-barcode{font-size:17px;font-family:'Courier New',monospace;color:var(--text-secondary);
-  margin-top:8px;font-weight:600;word-break:break-all;text-align:center}
-.result-details{font-size:13px;color:var(--text-secondary);margin-top:10px;text-align:center;line-height:1.6}
-.unit-chip{display:inline-block;margin-top:10px;padding:4px 14px;border-radius:20px;
-  font-size:14px;font-weight:700;background:rgba(0,0,0,.08);border:1px solid currentColor}
-.result-icon{font-size:36px;margin-bottom:6px}
-.history-section{background:var(--bg-card);border:1px solid var(--border-color);
-  border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow)}
-.history-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px}
-.history-header h2{font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px}
-.filter-tabs{display:flex;gap:4px;flex-wrap:wrap}
-.filter-tab{padding:4px 12px;border:1px solid var(--border-color);border-radius:20px;
-  background:var(--bg-primary);color:var(--text-secondary);font-size:12px;cursor:pointer;
-  font-weight:500;transition:all .15s}
-.filter-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-.history-list{max-height:420px;overflow-y:auto}
-.history-item{display:flex;align-items:center;gap:12px;padding:10px 12px;
-  border-bottom:1px solid var(--border-color);font-size:13px;transition:background .1s}
-.history-item:last-child{border-bottom:none}
-.history-item:hover{background:var(--bg-primary)}
-.history-badge{padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;
-  min-width:75px;text-align:center;text-transform:uppercase;letter-spacing:.5px}
-.badge-true{background:var(--success-bg);color:var(--success);border:1px solid var(--success-border)}
-.badge-false{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-border)}
-.badge-duplicate{background:var(--warning-bg);color:var(--warning);border:1px solid var(--warning-border)}
-.history-barcode{font-family:'Courier New',monospace;font-weight:600;min-width:130px}
-.history-desc{flex:1;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.history-time{color:var(--text-muted);font-size:11px;white-space:nowrap}
-.history-empty{text-align:center;padding:40px;color:var(--text-muted);font-size:14px}
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;
-  align-items:center;justify-content:center;padding:20px}
-.modal-overlay.active{display:flex}
-.modal{background:var(--bg-card);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);
-  max-width:760px;width:100%;max-height:88vh;overflow-y:auto;padding:24px}
-.modal h3{font-size:18px;font-weight:700;margin-bottom:16px}
-.modal p{font-size:14px;color:var(--text-secondary);line-height:1.5}
-.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:20px}
-.preview-table-wrapper{max-height:300px;overflow:auto;border:1px solid var(--border-color);
-  border-radius:var(--radius);margin-top:12px}
-.preview-table{width:100%;border-collapse:collapse;font-size:12px}
-.preview-table th{background:var(--bg-primary);padding:8px 10px;text-align:left;font-weight:600;
-  border-bottom:1px solid var(--border-color);position:sticky;top:0;white-space:nowrap}
-.preview-table td{padding:6px 10px;border-bottom:1px solid var(--border-color);
-  white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis}
-.preview-info{display:flex;gap:16px;margin-top:12px;flex-wrap:wrap}
-.preview-info span{font-size:13px;color:var(--text-secondary)}
-.preview-info strong{color:var(--text-primary)}
-.sheet-select-area{margin:12px 0;padding:16px;background:var(--bg-primary);
-  border-radius:var(--radius);border:1px solid var(--border-color)}
-.sheet-select-area label,.barcode-col-select label{font-weight:600;font-size:14px;display:block;margin-bottom:8px}
-.sheet-select-area select,.barcode-col-select select{width:100%;padding:10px;font-size:14px;
-  border:1px solid var(--border-color);border-radius:var(--radius);
-  background:var(--bg-secondary);color:var(--text-primary)}
-.sheet-hint{font-size:12px;color:var(--text-muted);margin-top:6px}
-.barcode-col-select{margin:12px 0}
-.note-box{margin-top:12px;padding:10px 12px;border-radius:var(--radius);font-size:13px;line-height:1.5}
-.note-warn{background:var(--warning-bg);border:1px solid var(--warning-border);color:var(--warning)}
-.note-info{background:var(--bg-primary);border:1px solid var(--border-color);color:var(--text-secondary)}
-.toast{position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:var(--radius);
-  color:#fff;font-size:13px;font-weight:500;z-index:2000;transform:translateY(120px);opacity:0;
-  transition:all .3s;box-shadow:var(--shadow-lg);max-width:420px}
-.toast.show{transform:translateY(0);opacity:1}
-.toast.success{background:var(--success)}
-.toast.error{background:var(--danger)}
-.toast.info{background:var(--accent)}
-#fileInput{display:none}
-@media (max-width:768px){
-  .header{padding:10px 14px}.header h1{font-size:15px}
-  .main-container{padding:12px}
-  .stats-grid{grid-template-columns:repeat(2,1fr);gap:8px}
-  .stat-value{font-size:22px}
-  .scan-input-row{flex-direction:column}
-  .result-status{font-size:38px}
-  .history-item{flex-wrap:wrap;gap:6px}
-  .history-barcode{min-width:unset}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--text); display:flex; min-height:100vh; }
+.sidebar { width:var(--sidebar-w); background:var(--surface); border-right:1px solid var(--border); display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; z-index:100; transition: transform 0.3s; }
+.sidebar-header { padding:20px 16px; border-bottom:1px solid var(--border); text-align:center; }
+.sidebar-header h1 { font-size:1.3rem; color:var(--primary); }
+.sidebar-header p { font-size:0.75rem; color:var(--text2); margin-top:4px; font-weight:600;}
+.sidebar-nav { flex:1; padding:12px 0; overflow-y:auto; }
+.nav-section { padding:12px 16px 4px; font-size:0.65rem; text-transform:uppercase; color:var(--text2); letter-spacing:1px; font-weight:bold; }
+.nav-item { display:flex; align-items:center; gap:12px; padding:12px 20px; cursor:pointer; color:var(--text2); transition:all 0.2s; border-left:3px solid transparent; font-size:0.95rem; font-weight:600; }
+.nav-item:hover { background:var(--surface2); color:var(--text); }
+.nav-item.active { background:rgba(59,130,246,0.1); color:var(--primary); border-left-color:var(--primary); }
+.nav-item .icon { font-size:1.2rem; width:24px; text-align:center; }
+.nav-item .badge { margin-left:auto; background:var(--primary); color:#fff; font-size:0.7rem; padding:2px 8px; border-radius:10px; }
+.sidebar-footer { padding:12px 16px; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:8px; }
+.sidebar-footer button { padding:8px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); color:var(--text); cursor:pointer; font-size:0.8rem; font-weight:600; display:flex; align-items:center; justify-content:center; gap:6px; }
+.sidebar-footer button:hover { border-color:var(--primary); color:var(--primary); }
+.sidebar-footer .danger-btn { color:var(--danger); border-color:rgba(220,38,38,0.3); }
+.sidebar-footer .danger-btn:hover { background:var(--danger); color:#fff; }
+.sidebar-hint { font-size:0.65rem; color:var(--text2); text-align:center; margin-top:4px; line-height:1.5; }
+.main-content { margin-left:var(--sidebar-w); flex:1; display:flex; flex-direction:column; min-height:100vh; width:calc(100% - var(--sidebar-w)); }
+.page { display:none; flex:1; flex-direction:column; padding:24px; gap:20px; }
+.page.active { display:flex; }
+.page-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+.page-header h2 { font-size:1.6rem; display:flex; align-items:center; gap:8px; margin:0; }
+.card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; }
+.stats-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; }
+.stat-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px; text-align:center; }
+.stat-card .stat-value { font-size:2.2rem; font-weight:bold; }
+.stat-card .stat-label { font-size:0.85rem; color:var(--text2); margin-top:4px; font-weight:600; text-transform:uppercase; }
+.stat-card.blue .stat-value { color:var(--primary); }
+.stat-card.green .stat-value { color:var(--success); }
+.stat-card.red .stat-value { color:var(--error); }
+.stat-card.yellow .stat-value { color:var(--warning); }
+.stat-card.cyan .stat-value { color:var(--cyan); }
+.btn { padding:10px 20px; border:none; border-radius:8px; cursor:pointer; font-size:0.9rem; font-weight:600; display:inline-flex; align-items:center; gap:8px; justify-content:center;}
+.btn-primary { background:var(--primary); color:#fff; }
+.btn-success { background:var(--success); color:#fff; }
+.btn-danger { background:var(--danger); color:#fff; }
+.btn-warning { background:var(--warning); color:#000; }
+.btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+.btn-sm { padding:6px 14px; font-size:0.8rem; }
+input[type="text"], input[type="date"], textarea, select { background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:12px 16px; color:var(--text); font-size:1rem; width:100%; }
+input[type="checkbox"] { width:auto; cursor:pointer; accent-color:var(--primary); width:18px; height:18px; }
+input:focus, textarea:focus, select:focus { outline:none; border-color:var(--primary); }
+.scan-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.scan-row input { flex:1; font-family:monospace; font-size:1.1rem; min-width:200px; }
+.banner { padding:16px 24px; border-radius:10px; font-weight:600; display:flex; align-items:center; gap:12px; font-size:1.1rem; margin-top:12px; flex-wrap:wrap; }
+.banner.info { background:rgba(59,130,246,0.15); border:1px solid var(--primary); color:var(--primary); }
+.banner.success { background:rgba(34,197,94,0.15); border:1px solid var(--success); color:var(--success); }
+.banner.warning { background:rgba(245,158,11,0.15); border:1px solid var(--warning); color:var(--warning); }
+.banner.error { background:rgba(239,68,68,0.15); border:1px solid var(--error); color:var(--error); }
+table { width:100%; border-collapse:collapse; font-size:0.85rem; }
+th { background:var(--surface2); padding:12px 16px; text-align:left; font-weight:600; color:var(--text2); white-space:nowrap; }
+td { padding:10px 16px; border-top:1px solid var(--border); }
+.scroll-table { max-height:450px; overflow-y:auto; border-radius:8px; border:1px solid var(--border); }
+.chip { display:inline-block; padding:4px 12px; border-radius:20px; font-size:0.75rem; font-weight:bold; }
+.chip-green { background:rgba(34,197,94,0.15); color:var(--success); }
+.chip-red { background:rgba(239,68,68,0.15); color:var(--error); }
+.chip-yellow { background:rgba(245,158,11,0.15); color:var(--warning); }
+.progress-bar { height:6px; background:var(--surface2); border-radius:3px; overflow:hidden; margin-top:12px; }
+.progress-bar .fill { height:100%; background:var(--primary); transition:width 0.3s ease; }
+.hidden { display:none !important; }
+.empty-state { text-align:center; padding:60px 20px; color:var(--text2); background:var(--surface); border:1px dashed var(--border); border-radius:12px; }
+.empty-state .icon { font-size:3.5rem; margin-bottom:16px; }
+.flash-overlay { position:fixed; top:0; left:var(--sidebar-w); right:0; bottom:0; pointer-events:none; z-index:999; opacity:0; transition:opacity 0.15s; }
+.flash-overlay.show { opacity:1; }
+.flash-overlay.green { background:rgba(34,197,94,0.2); }
+.flash-overlay.red { background:rgba(239,68,68,0.2); }
+.flash-overlay.orange { background:rgba(245,158,11,0.2); }
+.scan-toast { position:fixed; top:50%; left:calc(var(--sidebar-w) + (100% - var(--sidebar-w))/2); transform:translate(-50%,-50%); padding:30px 60px; border-radius:20px; font-size:2.5rem; font-weight:800; z-index:1000; opacity:0; pointer-events:none; transition:opacity 0.2s; text-align:center; }
+.scan-toast.show { opacity:1; }
+.scan-toast.true { background:rgba(34,197,94,0.95); color:#fff; }
+.scan-toast.false { background:rgba(239,68,68,0.95); color:#fff; }
+.scan-toast.dup { background:rgba(245,158,11,0.95); color:#000; }
+.scan-toast.unknown { background:rgba(245,158,11,0.95); color:#000; }
+.scan-toast.inv-ok { background:rgba(59,130,246,0.95); color:#fff; }
+.inv-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:16px; }
+.inv-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+.inv-card-head { padding:16px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; background:rgba(59,130,246,0.05); }
+.inv-card-head h4 { font-size:1.1rem; color:var(--primary); margin:0;}
+.inv-card-body { display:none; padding:0 16px 16px; border-top:1px solid var(--border); }
+.inv-card-body.open { display:block; }
+.inv-item-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border); font-size:0.9rem; gap:8px; flex-wrap:wrap; }
+.bulk-area textarea { min-height:180px; font-family:monospace; }
+.mobile-toggle { display:none; position:fixed; top:12px; left:12px; z-index:200; background:var(--primary); border:none; color:#fff; padding:10px 14px; border-radius:8px; font-size:1.2rem; cursor:pointer; }
+.db-warning { background:var(--warning); color:#000; padding:8px 16px; text-align:center; font-weight:bold; font-size:0.85rem; }
+@media(max-width:900px) {
+  .mobile-toggle { display:block; }
+  .sidebar { transform:translateX(-100%); }
+  .sidebar.open { transform:translateX(0); }
+  .main-content { margin-left:0; width:100%; padding-top:60px; }
+  .flash-overlay { left:0; }
+  .scan-toast { left:50%; }
 }
 </style>
 </head>
 <body>
 
-<header class="header">
-  <div class="header-left">
-    <div class="logo">LSC</div>
-    <div>
-      <h1>LSC Warehouse Inventory System</h1>
-      <div class="header-subtitle" id="headerFileInfo">No inventory loaded</div>
-    </div>
+<button class="mobile-toggle" id="mobileToggle">☰ Menu</button>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h1>📦 LSC Warehouse</h1>
+    <p>Scanner System</p>
   </div>
-  <div class="header-right">
-    <button class="btn btn-icon" id="themeToggle" title="Toggle theme">🌙</button>
-    <button class="btn btn-icon" id="soundToggle" title="Toggle sound">🔊</button>
-    <button class="btn btn-primary" id="importBtn">📥 Import Excel</button>
-    <button class="btn btn-success" id="exportBtn" disabled>📤 Export</button>
-    <button class="btn btn-danger btn-sm" id="resetBtn" title="Reset all data">🗑️ Reset</button>
+  <div class="sidebar-nav">
+    <div class="nav-section">Verification System</div>
+    <div class="nav-item active" data-page="verify" id="navVerify"><span class="icon">📋</span> Verify Dashboard</div>
+
+    <div class="nav-section">Inventory System</div>
+    <div class="nav-item" data-page="inv-scan"><span class="icon">📥</span> Scan Inventory <span class="badge" id="badgeInvTotal">0</span></div>
+    <div class="nav-item" data-page="inv-view"><span class="icon">📦</span> View Inventory</div>
+    <div class="nav-item" data-page="inv-stockout"><span class="icon">📤</span> Stock Out</div>
+    <div class="nav-item" data-page="inv-dashboard"><span class="icon">📊</span> Dashboard</div>
+    <div class="nav-item" data-page="item-lookup"><span class="icon">🔍</span> Find Item</div>
+
+    <div class="nav-section">System Data</div>
+    <div class="nav-item" data-page="data-manage"><span class="icon">💾</span> Export / Import</div>
   </div>
-</header>
-
-<input type="file" id="fileInput" accept=".xlsx,.xls">
-
-<main class="main-container">
-  <div class="alert-bar hidden" id="alertBar"><span>⚠️</span><span id="alertText"></span></div>
-
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-label">Inventory Rows</div>
-      <div class="stat-value" id="statRows">0</div>
-      <div class="stat-detail" id="statFileName">—</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Unique Barcodes</div>
-      <div class="stat-value" id="statUnique">0</div>
-      <div class="stat-detail" id="statDupRows">—</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Units Verified ✓</div>
-      <div class="stat-value success" id="statSuccess">0</div>
-      <div class="progress-bar-container"><div class="progress-bar-fill" id="progressBar" style="width:0%"></div></div>
-      <div class="stat-detail" id="statProgress">0% complete</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Unmatched ✗</div>
-      <div class="stat-value danger" id="statUnmatched">0</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Duplicate Scans</div>
-      <div class="stat-value warning" id="statDuplicates">0</div>
-    </div>
+  <div class="sidebar-footer">
+    <button onclick="toggleTheme()" id="themeBtn">🌙 Dark Mode</button>
+    <button onclick="toggleSound()">🔊 <span id="soundLabel">Sound ON</span></button>
+    <button class="danger-btn" onclick="clearVerifyOnly()">🗑️ Clear Verify Data</button>
+    <button class="danger-btn" onclick="resetAll()">⚠️ Reset All Systems</button>
+    <div class="sidebar-hint">Alt+1..7 jump • Ctrl+Z undo</div>
   </div>
+</nav>
 
-  <div class="scan-section">
-    <h2>📷 Scan / Enter Barcode</h2>
-    <div class="scan-input-row">
-      <input type="text" id="barcodeInput" placeholder="Scan or type barcode here..." autocomplete="off" autofocus>
-      <button class="btn btn-primary scan-btn" id="checkBtn">🔍 Check</button>
-    </div>
-    <div class="result-area" id="resultArea" role="status" aria-live="assertive">
-      <div class="result-icon">📦</div>
-      <div style="color:var(--text-muted);font-size:15px;">Ready to scan</div>
-      <div style="color:var(--text-muted);font-size:12px;margin-top:4px;">Scan a barcode or type it manually</div>
-    </div>
-  </div>
+<div class="flash-overlay" id="flash"></div>
+<div class="scan-toast" id="scanToast"></div>
 
-  <div class="history-section">
-    <div class="history-header">
-      <h2>📋 Scan History</h2>
-      <div class="filter-tabs">
-        <button class="filter-tab active" data-filter="all">All</button>
-        <button class="filter-tab" data-filter="true">✓ Verified</button>
-        <button class="filter-tab" data-filter="false">✗ Unmatched</button>
-        <button class="filter-tab" data-filter="duplicate">⚠ Duplicates</button>
+<div class="main-content">
+  <div id="dbWarning" class="db-warning hidden">⚠️ Local storage unavailable — data will NOT persist after refresh. Export your data manually.</div>
+
+  <!-- ===== VERIFY PAGE ===== -->
+  <div class="page active" id="page-verify">
+    <div class="page-header">
+      <h2>📋 Verification Dashboard</h2>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <label class="btn btn-primary" for="excelFileInput">📂 Load Excel</label>
+        <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv" class="hidden">
+        <button class="btn btn-outline hidden" id="btnVerifyUndo" onclick="undoLastVerifyScan()">↩ Undo Last Scan</button>
+        <button class="btn btn-success hidden" id="btnVerifyExport" onclick="exportVerifyExcel()">📥 Export Verification</button>
       </div>
     </div>
-    <div class="history-list" id="historyList">
-      <div class="history-empty">No scans yet. Import inventory and start scanning.</div>
+
+    <div id="verifyEmpty" class="empty-state">
+      <div class="icon">📂</div>
+      <p>Load an Excel file to start verification scanning</p>
+    </div>
+
+    <div id="verifySheetPicker" class="card hidden">
+      <h3 style="margin-bottom:12px">Select Worksheet</h3>
+      <select id="sheetSelect" style="margin-bottom:16px"></select>
+      <button class="btn btn-primary" onclick="loadSelectedSheet()">Load Sheet</button>
+    </div>
+    <div id="verifyColPicker" class="card hidden">
+      <h3 style="margin-bottom:12px">Select Barcode Column</h3>
+      <select id="colSelect" style="margin-bottom:16px"></select>
+      <button class="btn btn-primary" onclick="confirmBarcodeColumn()">Confirm</button>
+    </div>
+
+    <div id="verifyActive" class="hidden">
+      <div class="stats-row">
+        <div class="stat-card blue"><div class="stat-value" id="vTotal">0</div><div class="stat-label">Total Rows</div></div>
+        <div class="stat-card green"><div class="stat-value" id="vScanned">0</div><div class="stat-label">Verified ✓</div></div>
+        <div class="stat-card red"><div class="stat-value" id="vRemaining">0</div><div class="stat-label">Remaining</div></div>
+        <div class="stat-card yellow"><div class="stat-value" id="vDuplicates">0</div><div class="stat-label">Duplicates</div></div>
+        <div class="stat-card"><div class="stat-value" id="vUnmatched" style="color:var(--warning)">0</div><div class="stat-label">Unknown</div></div>
+      </div>
+
+      <div class="card" style="margin-top:20px; padding:24px;">
+        <h3 style="margin-bottom:12px">Barcode Scanner</h3>
+        <div class="scan-row"><input type="text" id="verifyScanInput" placeholder="🔍 Scan barcode here..." autofocus></div>
+        <div class="progress-bar"><div class="fill" id="vProgress" style="width:0%"></div></div>
+      </div>
+
+      <div id="verifyLastScan" style="display:none; margin-top:10px;"></div>
+
+      <div class="card" style="margin-top:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3>Verification History</h3>
+          <span style="font-size:0.85rem;color:var(--text2);font-weight:bold" id="vHistCount">0 scans</span>
+        </div>
+        <div class="scroll-table">
+          <table><thead><tr><th>#</th><th>Scanned Barcode</th><th>Result</th><th>Status Info</th><th>Time</th></tr></thead>
+          <tbody id="vHistBody"></tbody></table>
+        </div>
+      </div>
     </div>
   </div>
-</main>
 
-<!-- Sheet Selection -->
-<div class="modal-overlay" id="sheetModal"><div class="modal">
-  <h3>📄 Select Worksheet</h3>
-  <p>Choose the worksheet that contains your inventory data:</p>
-  <div class="sheet-select-area">
-    <label for="sheetSelect">Worksheet:</label>
-    <select id="sheetSelect"></select>
-    <div class="sheet-hint" id="sheetHint"></div>
+  <!-- ===== INVENTORY SCAN ===== -->
+  <div class="page" id="page-inv-scan">
+    <div class="page-header"><h2>📥 Scan Inventory</h2></div>
+    <div id="invStep1" class="card">
+      <h3 style="margin-bottom:12px; font-size:1.3rem;">Step 1: Scan Inventory Code</h3>
+      <p style="color:var(--text2);margin-bottom:16px">Scan the inventory/shipment code label to begin adding items inside it.</p>
+      <div class="scan-row"><input type="text" id="invCodeInput" placeholder="🏷️ Scan INV code here..."></div>
+    </div>
+    <div id="invStep2" class="hidden">
+      <div class="banner info">
+        <span>📦 Current Inventory: <strong id="invCurrentCode">-</strong></span>
+        <span style="margin-left:auto;font-size:0.9rem;background:#fff;color:var(--primary);padding:4px 10px;border-radius:12px;" id="invItemCount">0 items</span>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <h3 style="margin-bottom:12px">Step 2: Scan Shipment Items</h3>
+        <div class="scan-row">
+          <input type="text" id="invItemInput" placeholder="📦 Scan item barcode...">
+          <button class="btn btn-outline" onclick="undoLastInvScan()">↩ Undo</button>
+          <button class="btn btn-warning" onclick="finishInventoryCode()">✅ Done / Next INV</button>
+        </div>
+        <p style="font-size:0.8rem;color:var(--text2);margin-top:10px">💡 Duplicate barcodes in this INV are allowed (multiple units) — they will be flagged with an <strong>×N</strong> badge.</p>
+      </div>
+      <div id="invLastScan"></div>
+      <div class="card" style="margin-top:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3>Items Added</h3>
+          <span style="font-size:0.85rem;color:var(--text2);font-weight:bold" id="invScanCount">0</span>
+        </div>
+        <div class="scroll-table">
+          <table><thead><tr><th>#</th><th>Barcode</th><th>Time Added</th></tr></thead><tbody id="invItemsBody"></tbody></table>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="modal-actions">
-    <button class="btn" id="cancelSheet">Cancel</button>
-    <button class="btn btn-primary" id="loadSheet">📋 Load This Sheet</button>
-  </div>
-</div></div>
 
-<!-- Barcode Column Selection -->
-<div class="modal-overlay" id="barcodeColModal"><div class="modal">
-  <h3>🔍 Select Barcode Column</h3>
-  <p>Could not auto-detect the barcode column. Please select which column holds the barcodes:</p>
-  <div class="barcode-col-select">
-    <label for="barcodeColSelect">Barcode Column:</label>
-    <select id="barcodeColSelect"></select>
+  <!-- ===== VIEW INVENTORY ===== -->
+  <div class="page" id="page-inv-view">
+    <div class="page-header">
+      <h2>📦 View Inventory</h2>
+      <button class="btn btn-danger hidden" id="btnBatchStockOut" onclick="processBatchStockOut()">📤 Stock Out Selected</button>
+    </div>
+    <div class="scan-row" style="max-width:600px"><input type="text" id="invSearchInput" placeholder="🔍 Search by barcode or INV code..."></div>
+    <div id="invViewEmpty" class="empty-state hidden"><div class="icon">📦</div><p>No inventory data yet.</p></div>
+    <div class="inv-grid" id="invGrid"></div>
   </div>
-  <div id="colPreviewArea"></div>
-  <div class="modal-actions">
-    <button class="btn" id="cancelBarcodeCol">Cancel</button>
-    <button class="btn btn-primary" id="confirmBarcodeCol">✓ Use This Column</button>
-  </div>
-</div></div>
 
-<!-- Import Preview -->
-<div class="modal-overlay" id="importModal"><div class="modal">
-  <h3>📋 Import Preview</h3>
-  <div id="previewContent"></div>
-  <div class="modal-actions">
-    <button class="btn" id="cancelImport">Cancel</button>
-    <button class="btn btn-primary" id="confirmImport">✓ Confirm Import</button>
+  <!-- ===== STOCK OUT ===== -->
+  <div class="page" id="page-inv-stockout">
+    <div class="page-header">
+      <h2>📤 Stock Out System</h2>
+      <div style="display:flex;gap:8px;align-items:center">
+        <label style="font-size:0.85rem;color:var(--text2);font-weight:600">Reason:</label>
+        <select id="soReason" style="width:auto;min-width:160px">
+          <option value="Sold">Sold</option>
+          <option value="Damaged">Damaged</option>
+          <option value="Returned">Returned to Vendor</option>
+          <option value="Transfer">Transfer</option>
+          <option value="Missing">Missing</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-card red"><div class="stat-value" id="soTotalRemoved">0</div><div class="stat-label">Total Stocked Out</div></div>
+      <div class="stat-card yellow"><div class="stat-value" id="soToday">0</div><div class="stat-label">Today</div></div>
+      <div class="stat-card cyan"><div class="stat-value" id="soWeek">0</div><div class="stat-label">This Week</div></div>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(400px,1fr)); gap:20px; margin-top:20px;">
+      <div class="card">
+        <h3 style="margin-bottom:12px">🔍 Single Item Stock Out</h3>
+        <div class="scan-row"><input type="text" id="soScanInput" placeholder="Scan barcode to stock out..."></div>
+        <div id="soScanResult"></div>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:12px">📋 Bulk Stock Out</h3>
+        <p style="color:var(--text2);font-size:0.85rem;margin-bottom:12px">Paste multiple barcodes (one per line). Uses the <strong>Reason</strong> selected above.</p>
+        <div class="bulk-area">
+          <textarea id="soBulkArea" placeholder="Paste barcodes here..."></textarea>
+          <div style="display:flex;gap:12px;align-items:center;margin-top:12px;">
+            <button class="btn btn-danger" onclick="processBulkStockOut()">📤 Stock Out All</button>
+            <span style="font-size:0.85rem;color:var(--text2);font-weight:bold" id="soBulkCount">0 lines</span>
+          </div>
+        </div>
+        <div id="soBulkResult"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px">
+        <h3>📜 Stock Out History</h3>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="date" id="soDateFrom"> <span>to</span> <input type="date" id="soDateTo">
+          <button class="btn btn-outline btn-sm" onclick="filterStockOutLog()">Filter</button>
+          <button class="btn btn-outline btn-sm" onclick="clearSOFilter()">Clear</button>
+        </div>
+      </div>
+      <div class="scroll-table">
+        <table><thead><tr><th>#</th><th>Barcode</th><th>From Inventory</th><th>Removed At</th><th>Reason</th><th>Status</th></tr></thead><tbody id="soLogBody"></tbody></table>
+      </div>
+    </div>
   </div>
-</div></div>
 
-<!-- Confirm -->
-<div class="modal-overlay" id="confirmModal"><div class="modal">
-  <h3 id="confirmTitle">Confirm</h3>
-  <p id="confirmText"></p>
-  <div class="modal-actions">
-    <button class="btn" id="confirmNo">Cancel</button>
-    <button class="btn btn-danger" id="confirmYes">Confirm</button>
+  <!-- ===== DASHBOARD ===== -->
+  <div class="page" id="page-inv-dashboard">
+    <div class="page-header"><h2>📊 Inventory Dashboard</h2></div>
+    <div class="stats-row">
+      <div class="stat-card blue"><div class="stat-value" id="dbTotalInv">0</div><div class="stat-label">Inventory Codes</div></div>
+      <div class="stat-card green"><div class="stat-value" id="dbTotalItems">0</div><div class="stat-label">Total In Stock</div></div>
+      <div class="stat-card red"><div class="stat-value" id="dbTotalOut">0</div><div class="stat-label">Total Stocked Out</div></div>
+    </div>
+    <div class="card" style="margin-top:20px">
+      <h3 style="margin-bottom:16px">📦 Inventory Breakdown</h3>
+      <div class="scroll-table">
+        <table><thead><tr><th>INV Code</th><th>Created</th><th>Total</th><th>In Stock</th><th>Out</th></tr></thead><tbody id="dbBreakdownBody"></tbody></table>
+      </div>
+    </div>
   </div>
-</div></div>
 
-<div class="toast" id="toast"></div>
+  <!-- ===== FIND ITEM ===== -->
+  <div class="page" id="page-item-lookup">
+    <div class="page-header"><h2>🔍 Find Item</h2></div>
+    <p style="color:var(--text2);font-size:0.9rem;margin-top:-8px">Search any barcode across all inventories. Shows stock status, scan time, removal time, and reason.</p>
+    <div class="scan-row" style="max-width:640px">
+      <input type="text" id="lookupInput" placeholder="🔍 Scan or type barcode to find..." autofocus>
+    </div>
+    <div id="lookupResult"><div class="empty-state"><div class="icon">🔍</div><p>Scan or type a barcode...</p></div></div>
+  </div>
+
+  <!-- ===== DATA MANAGE ===== -->
+  <div class="page" id="page-data-manage">
+    <div class="page-header"><h2>💾 Data Management</h2></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px">
+      <div class="card"><h3 style="margin-bottom:12px">📥 Export Database</h3><button class="btn btn-primary" onclick="exportDatabase()">📥 Download JSON</button></div>
+      <div class="card"><h3 style="margin-bottom:12px">📤 Import Database</h3><label class="btn btn-warning" for="dbImportFile">📤 Select JSON</label><input type="file" id="dbImportFile" accept=".json" class="hidden"></div>
+      <div class="card"><h3 style="margin-bottom:12px">📊 Export Inventory Excel</h3><button class="btn btn-success" onclick="exportInventoryExcel()">📊 Export Excel</button></div>
+    </div>
+  </div>
+</div>
 
 <script>
-(function(){
-'use strict';
+// ===================== CORE STATE =====================
+const PREFERRED_SHEET = 'Physicsl Count 12-07-2026';
+const LS_SESSION = 'lsc_session_v1';
+const LS_VERIFY  = 'lsc_verifyData_v1';
 
-/* ================= CONFIG ================= */
-const DB_NAME='LSCWarehouseDB';
-const DB_VERSION=4;
-const STORE_INVENTORY='inventory';
-const STORE_SESSION='session';
-const PREFERRED_SHEET='Physicsl Count 12-07-2026';
+let soundEnabled = localStorage.getItem('lsc_sound') !== 'false';
+let isLightMode = localStorage.getItem('lsc_theme') === 'light';
+let audioCtx = null;
+let masterGain = null;
+let workbookCache = null;
+let sessionData = emptySession();
+let verifyData = null;
+let selectedStockOutItems = new Set();   // keys = "code|barcode|scannedAt"
 
-/* ================= STATE ================= */
-let db=null;
-let inventoryData=null;          // {fileName, sheetName, headers, rows, barcodeColIndex, importDate}
-let sessionData=null;            // {verifiedRows:{}, unmatchedBarcodes:{}, history:[], duplicateCount:0}
-let soundEnabled=true;
-let audioCtx=null;
-let currentFilter='all';
-let isProcessing=false;
-
-let barcodeRowMap=null;          // { normalizedBarcode: [rowIndex,...] }  built after import/restore
-
-let tempWorkbook=null, tempFileName='', tempParsedSheet=null;
-
-/* ================= DOM ================= */
-const $=id=>document.getElementById(id);
-const barcodeInput=$('barcodeInput');
-const resultArea=$('resultArea');
-const historyList=$('historyList');
-const fileInput=$('fileInput');
-
-function escHtml(s){ if(s===null||s===undefined) return ''; const d=document.createElement('div'); d.textContent=String(s); return d.innerHTML; }
-function formatTime(iso){ if(!iso) return ''; try{ return new Date(iso).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}catch(e){return '';} }
-
-function emptySession(){
-  return { verifiedRows:{}, unmatchedBarcodes:{}, history:[], duplicateCount:0 };
+function emptySession() {
+  return { verifiedRows:{}, unmatchedBarcodes:{}, history:[], duplicateCount:0,
+    inventories:{}, stockOutLog:[], currentInventoryCode:null, lastVerifyAction:null };
 }
 
-/* ================= INDEXEDDB ================= */
-function openDB(){
-  return new Promise((res,rej)=>{
-    const r=indexedDB.open(DB_NAME,DB_VERSION);
-    r.onupgradeneeded=e=>{
-      const d=e.target.result;
-      if(!d.objectStoreNames.contains(STORE_INVENTORY)) d.createObjectStore(STORE_INVENTORY,{keyPath:'id'});
-      if(!d.objectStoreNames.contains(STORE_SESSION)) d.createObjectStore(STORE_SESSION,{keyPath:'id'});
-    };
-    r.onsuccess=e=>{db=e.target.result;res(db);};
-    r.onerror=e=>rej(e.target.error);
-  });
+function stockOutKey(code, barcode, scannedAt) { return code + '|' + barcode + '|' + scannedAt; }
+
+// ===================== THEME =====================
+if (isLightMode) document.documentElement.classList.add('light-mode');
+document.getElementById('themeBtn').innerHTML = isLightMode ? '☀️ Light Mode' : '🌙 Dark Mode';
+document.getElementById('soundLabel').textContent = soundEnabled ? 'Sound ON' : 'Sound OFF';
+
+function toggleTheme() {
+  isLightMode = !isLightMode;
+  document.documentElement.classList.toggle('light-mode', isLightMode);
+  localStorage.setItem('lsc_theme', isLightMode ? 'light' : 'dark');
+  document.getElementById('themeBtn').innerHTML = isLightMode ? '☀️ Light Mode' : '🌙 Dark Mode';
 }
-function dbPut(store,data){
-  return new Promise((res,rej)=>{
-    try{ const tx=db.transaction(store,'readwrite'); tx.objectStore(store).put(data);
-      tx.oncomplete=()=>res(); tx.onerror=e=>rej(e.target.error);
-    }catch(e){rej(e);}
-  });
+
+// ===================== AUDIO (loud, instant, pre-unlocked) =====================
+function unlockAudio() {
+  if (!audioCtx) {
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const comp = audioCtx.createDynamicsCompressor();
+      comp.threshold.value = -22;
+      comp.knee.value      = 8;
+      comp.ratio.value     = 16;
+      comp.attack.value    = 0.002;
+      comp.release.value   = 0.2;
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = 5;          // global boost
+      masterGain.connect(comp);
+      comp.connect(audioCtx.destination);
+    } catch(e) { return; }
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
 }
-function dbGet(store,key){
-  return new Promise((res,rej)=>{
-    try{ const tx=db.transaction(store,'readonly'); const q=tx.objectStore(store).get(key);
-      q.onsuccess=()=>res(q.result); q.onerror=e=>rej(e.target.error);
-    }catch(e){rej(e);}
-  });
+document.addEventListener('keydown', unlockAudio, { capture:true });
+document.addEventListener('click', unlockAudio, { capture:true });
+document.addEventListener('touchstart', unlockAudio, { capture:true });
+
+function tone(freq, type, startOffset, dur, vol) {
+  if (!audioCtx) return;
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type;
+  o.frequency.value = freq;
+  o.connect(g);
+  g.connect(masterGain || audioCtx.destination);
+  const t = audioCtx.currentTime + startOffset;
+  const peak = Math.max(0.0001, Math.min(vol * 2, 1.4));
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(peak, t + 0.008);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.start(t);
+  o.stop(t + dur + 0.03);
 }
-function dbClear(store){
-  return new Promise((res,rej)=>{
-    try{ const tx=db.transaction(store,'readwrite'); tx.objectStore(store).clear();
-      tx.oncomplete=()=>res(); tx.onerror=e=>rej(e.target.error);
-    }catch(e){rej(e);}
-  });
+function playSuccess() {
+  if (!soundEnabled) return; unlockAudio();
+  [1047,1319,1568].forEach((f,i)=>{ tone(f,'sine',i*0.13,0.22,0.9); tone(f+2,'triangle',i*0.13,0.22,0.9); });
 }
-async function saveInventory(){
-  if(!inventoryData||!db) return;
-  try{ await dbPut(STORE_INVENTORY,{id:'current',...inventoryData}); }
-  catch(e){ console.error(e); showToast('Storage error (inventory): '+e.message+' — export a backup now.','error'); }
+function playError() {
+  if (!soundEnabled) return; unlockAudio();
+  [180,120,90].forEach((f,i)=>{ tone(f,'sawtooth',i*0.2,0.28,0.95); tone(f*1.02,'square',i*0.2,0.28,0.95); });
 }
-let saveTimer=null;
-function saveSessionDebounced(){
-  clearTimeout(saveTimer);
-  saveTimer=setTimeout(saveSession,150);
+function playDuplicate() {
+  if (!soundEnabled) return; unlockAudio();
+  [800,500,800,500].forEach((f,i)=> tone(f,'square',i*0.12,0.12,0.9));
 }
-async function saveSession(){
-  if(!sessionData||!db) return;
-  try{
-    const trimmed={...sessionData, history: sessionData.history.slice(0,3000)};
-    await dbPut(STORE_SESSION,{id:'current',...trimmed});
-  }catch(e){ console.error(e); showToast('Storage error (session): '+e.message+' — export a backup now.','error'); }
+function playInfo() {
+  if (!soundEnabled) return; unlockAudio();
+  [700,900].forEach((f,i)=> tone(f,'sine',i*0.13,0.18,0.85));
 }
-async function loadFromDB(){
-  try{
-    const inv=await dbGet(STORE_INVENTORY,'current');
-    if(inv){
-      inventoryData={fileName:inv.fileName,sheetName:inv.sheetName,headers:inv.headers,
-        rows:inv.rows,barcodeColIndex:inv.barcodeColIndex,importDate:inv.importDate};
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  localStorage.setItem('lsc_sound', soundEnabled);
+  document.getElementById('soundLabel').textContent = soundEnabled ? 'Sound ON' : 'Sound OFF';
+  if (soundEnabled) { unlockAudio(); playInfo(); }
+}
+
+// ===================== DATE HELPERS =====================
+function saudiNow() { return new Date(new Date().toLocaleString('en-US', { timeZone:'Asia/Riyadh' })); }
+function pad(n){ return String(n).padStart(2,'0'); }
+function saudiDateOnly(){ const d=saudiNow(); return `${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}`; }
+function saudiDateTime(){ const d=saudiNow(); return `${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ===================== PERSISTENCE (localStorage — survives refresh) =====================
+function persistSession() {
+  try { localStorage.setItem(LS_SESSION, JSON.stringify(sessionData)); }
+  catch (e) { console.warn('Save session failed:', e); showDbWarning(); }
+}
+function persistVerifyData() {
+  try {
+    if (verifyData) localStorage.setItem(LS_VERIFY, JSON.stringify(verifyData));
+    else localStorage.removeItem(LS_VERIFY);
+  } catch (e) { console.warn('Save verify failed:', e); showDbWarning(); }
+}
+function showDbWarning() { document.getElementById('dbWarning').classList.remove('hidden'); }
+
+// ===================== NAV =====================
+function switchPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const pageEl = document.getElementById('page-' + page);
+  if (pageEl) pageEl.classList.add('active');
+  const navEl = document.querySelector(`.nav-item[data-page="${page}"]`);
+  if (navEl) navEl.classList.add('active');
+
+  setTimeout(() => {
+    if (page === 'verify' && verifyData) document.getElementById('verifyScanInput')?.focus();
+    else if (page === 'inv-scan') {
+      if (sessionData.currentInventoryCode) document.getElementById('invItemInput')?.focus();
+      else document.getElementById('invCodeInput')?.focus();
+    } else if (page === 'inv-stockout') document.getElementById('soScanInput')?.focus();
+    else if (page === 'inv-view') document.getElementById('invSearchInput')?.focus();
+    else if (page === 'item-lookup') document.getElementById('lookupInput')?.focus();
+  }, 50);
+
+  if (page === 'inv-view') renderInvView();
+  if (page === 'inv-stockout') renderStockOut();
+  if (page === 'inv-dashboard') renderDashboard();
+  if (page === 'inv-scan') refreshInvScanUI();
+  if (page === 'item-lookup') renderLookup();
+
+  document.getElementById('sidebar').classList.remove('open');
+}
+document.querySelectorAll('.nav-item').forEach(item => item.addEventListener('click', () => switchPage(item.dataset.page)));
+document.getElementById('mobileToggle').addEventListener('click', () => document.getElementById('sidebar').classList.toggle('open'));
+
+function flash(color) {
+  const el = document.getElementById('flash');
+  el.className = 'flash-overlay ' + color + ' show';
+  setTimeout(() => el.classList.remove('show'), 300);
+}
+function showToast(text, cls, duration=1200) {
+  const el = document.getElementById('scanToast');
+  el.textContent = text; el.className = 'scan-toast ' + cls + ' show';
+  setTimeout(() => el.classList.remove('show'), duration);
+}
+
+// ===================== KEYBOARD SHORTCUTS =====================
+document.addEventListener('keydown', (e) => {
+  const t = e.target;
+  const inField = t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT';
+  if (e.altKey) {
+    const map = { '1':'verify', '2':'inv-scan', '3':'inv-stockout', '4':'inv-view', '5':'item-lookup', '6':'inv-dashboard', '7':'data-manage' };
+    if (map[e.key]) { e.preventDefault(); switchPage(map[e.key]); return; }
+  }
+  if (e.ctrlKey && (e.key === 'z' || e.key === 'Z')) {
+    const inFilledInput = inField && t.value && t.type !== 'checkbox';
+    if (!inFilledInput) { e.preventDefault(); undoLastScan(); }
+  }
+});
+
+function undoLastScan() {
+  const active = document.querySelector('.page.active');
+  if (!active) return;
+  if (active.id === 'page-verify') undoLastVerifyScan();
+  else if (active.id === 'page-inv-scan') undoLastInvScan();
+  else showToast('Undo works on Verify & Scan INV pages', 'dup', 900);
+}
+
+// =========================================================================
+// ========================= VERIFY SYSTEM =================================
+// =========================================================================
+document.getElementById('excelFileInput').addEventListener('change', function(e) {
+  unlockAudio();
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    try {
+      const data = new Uint8Array(evt.target.result);
+      const wb = XLSX.read(data, { type:'array' });
+      workbookCache = wb;
+      workbookCache._fileName = file.name;
+      const sheetNames = wb.SheetNames;
+      const preferred = sheetNames.find(s => s.trim() === PREFERRED_SHEET);
+      if (preferred) loadSheet(wb, preferred, file.name);
+      else if (sheetNames.length === 1) loadSheet(wb, sheetNames[0], file.name);
+      else {
+        const sel = document.getElementById('sheetSelect');
+        sel.innerHTML = sheetNames.map(s => `<option value="${s}">${s}</option>`).join('');
+        document.getElementById('verifyEmpty').classList.add('hidden');
+        document.getElementById('verifySheetPicker').classList.remove('hidden');
+      }
+    } catch(err) {
+      alert('Error reading Excel file: ' + err.message);
+      console.error(err);
     }
-    const ses=await dbGet(STORE_SESSION,'current');
-    if(ses){
-      sessionData={
-        verifiedRows: ses.verifiedRows || {},
-        unmatchedBarcodes: ses.unmatchedBarcodes || {},
-        history: ses.history || [],
-        duplicateCount: ses.duplicateCount || 0
-      };
-    }
-  }catch(e){ console.error('Load error:',e); }
-}
-
-/* ================= AUDIO (LOUD) ================= */
-function initAudio(){
-  if(!audioCtx){
-    try{ audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ console.warn('No audio'); }
-  }
-  if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume();
-}
-function playTone(freq,dur,type,vol){
-  if(!soundEnabled||!audioCtx) return;
-  try{
-    const osc=audioCtx.createOscillator();
-    const osc2=audioCtx.createOscillator();
-    const gain=audioCtx.createGain();
-    osc.connect(gain); osc2.connect(gain); gain.connect(audioCtx.destination);
-    osc.type=type||'sine'; osc2.type=type||'sine';
-    osc.frequency.value=freq; osc2.frequency.value=freq*1.5;
-    const v=Math.min(vol||0.8,1.0);
-    gain.gain.setValueAtTime(v,audioCtx.currentTime);
-    gain.gain.setValueAtTime(v,audioCtx.currentTime+dur*0.6);
-    gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
-    osc.start(audioCtx.currentTime); osc2.start(audioCtx.currentTime);
-    osc.stop(audioCtx.currentTime+dur); osc2.stop(audioCtx.currentTime+dur);
-  }catch(e){}
-}
-function playSuccess(){
-  playTone(1047,0.30,'sine',0.9);
-  setTimeout(()=>playTone(1319,0.30,'sine',0.9),120);
-  setTimeout(()=>playTone(1568,0.40,'sine',0.8),250);
-}
-function playError(){
-  playTone(180,0.50,'sawtooth',0.9);
-  setTimeout(()=>playTone(120,0.50,'sawtooth',0.9),250);
-  setTimeout(()=>playTone(90,0.60,'square',0.8),500);
-}
-function playDuplicate(){
-  playTone(800,0.20,'square',0.85);
-  setTimeout(()=>playTone(500,0.20,'square',0.85),200);
-  setTimeout(()=>playTone(800,0.20,'square',0.85),400);
-  setTimeout(()=>playTone(500,0.30,'square',0.80),600);
-}
-
-/* ================= TOAST ================= */
-function showToast(msg,type){
-  const t=$('toast');
-  t.textContent=msg;
-  t.className='toast '+(type||'info')+' show';
-  clearTimeout(t._tid);
-  t._tid=setTimeout(()=>t.classList.remove('show'),4000);
-}
-
-/* ================= THEME / SOUND SETTINGS ================= */
-function initTheme(){
-  if(localStorage.getItem('lsc_theme')==='dark'){
-    document.body.setAttribute('data-theme','dark');
-    $('themeToggle').textContent='☀️';
-  }
-}
-function toggleTheme(){
-  const isDark=document.body.getAttribute('data-theme')==='dark';
-  if(isDark){ document.body.removeAttribute('data-theme'); $('themeToggle').textContent='🌙'; localStorage.setItem('lsc_theme','light'); }
-  else{ document.body.setAttribute('data-theme','dark'); $('themeToggle').textContent='☀️'; localStorage.setItem('lsc_theme','dark'); }
-}
-function initSoundSetting(){ soundEnabled=localStorage.getItem('lsc_sound')!=='false'; updateSoundBtn(); }
-function toggleSound(){ initAudio(); soundEnabled=!soundEnabled; localStorage.setItem('lsc_sound',soundEnabled); updateSoundBtn(); if(soundEnabled) playSuccess(); }
-function updateSoundBtn(){ $('soundToggle').textContent=soundEnabled?'🔊':'🔇'; $('soundToggle').title=soundEnabled?'Sound ON (loud)':'Sound OFF'; }
-
-/* ================= DATE HELPERS (Saudi UTC+3) ================= */
-function saudiNow(){
-  const now=new Date();
-  return new Date(now.getTime()+(3*60+now.getTimezoneOffset())*60000);
-}
-function saudiDateOnly(){
-  const s=saudiNow();
-  return String(s.getDate()).padStart(2,'0')+'-'+String(s.getMonth()+1).padStart(2,'0')+'-'+s.getFullYear();
-}
-function saudiDateTime(){
-  const s=saudiNow();
-  return String(s.getDate()).padStart(2,'0')+'-'+String(s.getMonth()+1).padStart(2,'0')+'-'+s.getFullYear()
-    +' '+String(s.getHours()).padStart(2,'0')+':'+String(s.getMinutes()).padStart(2,'0')+':'+String(s.getSeconds()).padStart(2,'0');
-}
-
-/* ================= FILE READ ================= */
-function readFile(file){
-  return new Promise((res,rej)=>{
-    const r=new FileReader();
-    r.onload=e=>res(new Uint8Array(e.target.result));
-    r.onerror=e=>rej(e.target.error);
-    r.readAsArrayBuffer(file);
-  });
-}
-
-/* ================= IMPORT ================= */
-function handleImportClick(){ initAudio(); fileInput.value=''; fileInput.click(); }
-
-async function handleFileSelect(e){
-  const file=e.target.files[0];
-  if(!file) return;
-  if(!/\.xlsx?$/i.test(file.name)){ showToast('Please select an Excel file (.xlsx or .xls)','error'); return; }
-  try{
-    showToast('Reading file...','info');
-    const data=await readFile(file);
-    const wb=XLSX.read(data,{type:'array',cellText:true,cellDates:false,raw:true});
-    if(!wb.SheetNames||!wb.SheetNames.length){ showToast('No worksheets found in this file.','error'); return; }
-    tempWorkbook=wb; tempFileName=file.name;
-
-    const prefIdx=wb.SheetNames.findIndex(n=>n.trim().toLowerCase()===PREFERRED_SHEET.toLowerCase());
-    if(prefIdx!==-1) parseAndPreviewSheet(wb.SheetNames[prefIdx]);
-    else if(wb.SheetNames.length===1) parseAndPreviewSheet(wb.SheetNames[0]);
-    else showSheetSelector(wb.SheetNames);
-  }catch(err){
-    console.error(err);
-    showToast('Error reading file: '+err.message,'error');
-  }
-}
-function showSheetSelector(names){
-  const sel=$('sheetSelect'); sel.innerHTML='';
-  names.forEach((n,i)=>{ const o=document.createElement('option'); o.value=n; o.textContent=(i+1)+'. '+n; sel.appendChild(o); });
-  $('sheetHint').textContent='Found '+names.length+' worksheet(s). Select the one with inventory data.';
-  $('sheetModal').classList.add('active');
-}
-function handleLoadSheet(){
-  const n=$('sheetSelect').value;
-  $('sheetModal').classList.remove('active');
-  if(n&&tempWorkbook) parseAndPreviewSheet(n);
-}
-function cancelSheetSelect(){ $('sheetModal').classList.remove('active'); tempWorkbook=null; tempFileName=''; barcodeInput.focus(); }
-
-function parseAndPreviewSheet(sheetName){
-  const sheet=tempWorkbook.Sheets[sheetName];
-  if(!sheet){ showToast('Worksheet "'+sheetName+'" is empty or unreadable.','error'); return; }
-
-  const raw=XLSX.utils.sheet_to_json(sheet,{header:1,raw:true,defval:''});
-  if(!raw||raw.length<1){ showToast('Worksheet contains no data.','error'); return; }
-
-  // find header row = first row with >=2 non-empty cells
-  let hIdx=-1;
-  for(let i=0;i<Math.min(raw.length,20);i++){
-    const r=raw[i]; if(!r) continue;
-    const n=r.filter(c=>c!==null&&c!==undefined&&String(c).trim()!=='').length;
-    if(n>=2){ hIdx=i; break; }
-  }
-  if(hIdx===-1) hIdx=0;
-
-  const rawHeaders=raw[hIdx];
-  const maxCols=raw.reduce((m,r)=>Math.max(m,r?r.length:0),0);
-  const headers=[];
-  for(let j=0;j<maxCols;j++){
-    const h=(rawHeaders&&rawHeaders[j]!==null&&rawHeaders[j]!==undefined)?String(rawHeaders[j]).trim():'';
-    headers.push(h||('Column_'+(j+1)));
-  }
-
-  const rows=[];
-  for(let i=hIdx+1;i<raw.length;i++){
-    const r=raw[i]; if(!r) continue;
-    if(!r.some(c=>c!==null&&c!==undefined&&String(c).trim()!=='')) continue;
-    const pr=[];
-    for(let j=0;j<headers.length;j++){
-      pr.push((r[j]!==null&&r[j]!==undefined)?String(r[j]):'');
-    }
-    rows.push(pr);
-  }
-  if(!rows.length){ showToast('No data rows found after the header row.','error'); return; }
-
-  const bcIdx=autoDetectBarcodeCol(headers);
-
-  tempParsedSheet={
-    fileName:tempFileName, sheetName:sheetName,
-    headers:headers, rows:rows,
-    barcodeColIndex:bcIdx, importDate:new Date().toISOString()
   };
+  reader.onerror = function(err) { alert('Failed to read file.'); console.error(err); };
+  reader.readAsArrayBuffer(file);
+  e.target.value = '';
+});
 
-  if(bcIdx===-1) showBarcodeColSelector(headers,rows);
-  else showImportPreview(tempParsedSheet);
+function loadSelectedSheet() {
+  const name = document.getElementById('sheetSelect').value;
+  loadSheet(workbookCache, name, workbookCache._fileName);
 }
 
-function autoDetectBarcodeCol(headers){
-  const exact=['barcode','bar code','bar_code','barcodes','qr code','qrcode','qr'];
-  for(let i=0;i<headers.length;i++){ if(exact.includes(headers[i].toLowerCase().trim())) return i; }
-  const broader=['upc','ean','sku','item code','itemcode','item_code','product code','code','serial'];
-  for(let i=0;i<headers.length;i++){ if(broader.includes(headers[i].toLowerCase().trim())) return i; }
-  for(let i=0;i<headers.length;i++){
-    const h=headers[i].toLowerCase().trim();
-    if(h.includes('barcode')||h.includes('bar code')||h.includes('bar_code')||h.includes('qr')) return i;
+function loadSheet(wb, sheetName, fileName) {
+  document.getElementById('verifySheetPicker').classList.add('hidden');
+  const ws = wb.Sheets[sheetName];
+  const json = XLSX.utils.sheet_to_json(ws, { header:1, defval:'' });
+  if (json.length < 2) { alert('Sheet is empty or has no data rows.'); document.getElementById('verifyEmpty').classList.remove('hidden'); return; }
+
+  const headers = json[0].map(h => String(h).trim());
+  const rows = json.slice(1).map(r => r.map(c => String(c ?? '').trim()));
+
+  const barcodeCol = detectColumn(headers, [
+    ['barcode','bar code','bar_code','barcodes','qr code','qrcode','qr'],
+    ['upc','ean','sku','item code','code','serial']
+  ]);
+
+  if (barcodeCol === -1) {
+    const sel = document.getElementById('colSelect');
+    sel.innerHTML = headers.map((h,i) => `<option value="${i}">${h}</option>`).join('');
+    document.getElementById('verifyEmpty').classList.add('hidden');
+    document.getElementById('verifyColPicker').classList.remove('hidden');
+    workbookCache._tempLoad = { headers, rows, sheetName, fileName };
+    return;
   }
+  finishVerifyLoad(headers, rows, barcodeCol, detectDateColumn(headers), sheetName, fileName);
+}
+
+function confirmBarcodeColumn() {
+  const col = parseInt(document.getElementById('colSelect').value);
+  const { headers, rows, sheetName, fileName } = workbookCache._tempLoad;
+  document.getElementById('verifyColPicker').classList.add('hidden');
+  finishVerifyLoad(headers, rows, col, detectDateColumn(headers), sheetName, fileName);
+}
+
+function detectColumn(headers, aliasSets) {
+  const lower = headers.map(h => h.toLowerCase());
+  for (const aliases of aliasSets) { const idx = lower.findIndex(h => aliases.includes(h)); if (idx !== -1) return idx; }
+  for (const aliases of aliasSets) { const idx = lower.findIndex(h => aliases.some(a => h.includes(a))); if (idx !== -1) return idx; }
   return -1;
 }
-
-function showBarcodeColSelector(headers,rows){
-  const sel=$('barcodeColSelect'); sel.innerHTML='';
-  headers.forEach((h,i)=>{
-    const o=document.createElement('option'); o.value=i;
-    const sample=rows.length?rows[0][i]:'';
-    o.textContent=h+'  (sample: "'+sample+'")';
-    sel.appendChild(o);
-  });
-  let html='<div class="preview-table-wrapper"><table class="preview-table"><thead><tr>';
-  headers.forEach(h=>{html+='<th>'+escHtml(h)+'</th>';}); html+='</tr></thead><tbody>';
-  rows.slice(0,5).forEach(r=>{ html+='<tr>'; r.forEach(c=>{html+='<td>'+escHtml(c)+'</td>';}); html+='</tr>'; });
-  html+='</tbody></table></div>';
-  $('colPreviewArea').innerHTML=html;
-  $('barcodeColModal').classList.add('active');
+function detectDateColumn(headers) {
+  const lower = headers.map(h => h.toLowerCase());
+  const exact = ['inventory date','count date','inv date','stock date','date'];
+  let idx = lower.findIndex(h => exact.includes(h));
+  if (idx !== -1) return idx;
+  idx = lower.findIndex(h => h.includes('date') && (h.includes('inventory')||h.includes('count')));
+  return idx !== -1 ? idx : lower.findIndex(h => h.includes('date'));
 }
-function handleConfirmBarcodeCol(){
-  const i=parseInt($('barcodeColSelect').value,10);
-  $('barcodeColModal').classList.remove('active');
-  if(tempParsedSheet&&!isNaN(i)){ tempParsedSheet.barcodeColIndex=i; showImportPreview(tempParsedSheet); }
+
+function finishVerifyLoad(headers, rows, barcodeCol, dateCol, sheetName, fileName) {
+  verifyData = { headers, rows, barcodeCol, dateCol, sheetName, fileName };
+  sessionData.verifiedRows = {}; sessionData.unmatchedBarcodes = {};
+  sessionData.history = []; sessionData.duplicateCount = 0; sessionData.lastVerifyAction = null;
+
+  document.getElementById('verifyEmpty').classList.add('hidden');
+  document.getElementById('verifyActive').classList.remove('hidden');
+  document.getElementById('btnVerifyExport').classList.remove('hidden');
+  document.getElementById('btnVerifyUndo').classList.remove('hidden');
+  updateVerifyStats();
+  renderVerifyHistory();
+  document.getElementById('verifyScanInput').focus();
+  playInfo();
+  showToast(`Loaded: ${rows.length} rows`, 'inv-ok');
+
+  persistSession();
+  persistVerifyData();
 }
-function cancelBarcodeCol(){ $('barcodeColModal').classList.remove('active'); tempParsedSheet=null; tempWorkbook=null; barcodeInput.focus(); }
 
-function showImportPreview(d){
-  const counts={}; let empty=0;
-  d.rows.forEach(r=>{
-    const bc=String(r[d.barcodeColIndex]).trim();
-    if(bc) counts[bc]=(counts[bc]||0)+1; else empty++;
-  });
-  const uniqueCount=Object.keys(counts).length;
-  const dupBarcodes=Object.keys(counts).filter(k=>counts[k]>1);
-  const dupRowTotal=dupBarcodes.reduce((s,k)=>s+counts[k],0);
-
-  let html='<div class="preview-info">';
-  html+='<span>📄 File: <strong>'+escHtml(d.fileName)+'</strong></span>';
-  html+='<span>📑 Sheet: <strong>'+escHtml(d.sheetName)+'</strong></span>';
-  html+='<span>📊 Rows: <strong>'+d.rows.length+'</strong></span>';
-  html+='<span>📐 Columns: <strong>'+d.headers.length+'</strong></span>';
-  html+='<span>🔢 Unique Barcodes: <strong>'+uniqueCount+'</strong></span>';
-  html+='<span>📌 Barcode Column: <strong>'+escHtml(d.headers[d.barcodeColIndex])+'</strong> (col '+(d.barcodeColIndex+1)+')</span>';
-  if(empty) html+='<span>⚠️ Rows with empty barcode: <strong>'+empty+'</strong></span>';
-  html+='</div>';
-
-  if(dupBarcodes.length){
-    html+='<div class="note-box note-info">🔴 <strong>'+dupBarcodes.length+'</strong> barcode(s) repeat across <strong>'+dupRowTotal+'</strong> rows. '
-      +'Each repeated row must be scanned separately (unit-by-unit). These rows will be highlighted <strong>RED</strong> in the export.</div>';
+document.getElementById('verifyScanInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    const val = this.value.trim();
+    if (val) processVerifyScan(val);
+    this.value = '';
   }
+});
 
-  html+='<div class="preview-table-wrapper"><table class="preview-table"><thead><tr>';
-  d.headers.forEach((h,i)=>{ html+='<th>'+escHtml(h)+(i===d.barcodeColIndex?' ★':'')+'</th>'; });
-  html+='</tr></thead><tbody>';
-  d.rows.slice(0,25).forEach(r=>{
-    html+='<tr>';
-    r.forEach((c,i)=>{ html+='<td'+(i===d.barcodeColIndex?' style="font-weight:700;color:var(--accent)"':'')+'>'+escHtml(c)+'</td>'; });
-    html+='</tr>';
-  });
-  if(d.rows.length>25) html+='<tr><td colspan="'+d.headers.length+'" style="text-align:center;color:var(--text-muted);font-style:italic">... and '+(d.rows.length-25)+' more rows</td></tr>';
-  html+='</tbody></table></div>';
+// =====================================================================
+// VERIFY SCAN — duplicate logic UNCHANGED from original system.
+// Additional tracking added (lastVerifyAction) only to enable Undo.
+// =====================================================================
+function processVerifyScan(barcode) {
+  if (!verifyData) return;
+  unlockAudio();
 
-  if(inventoryData&&inventoryData.rows&&inventoryData.rows.length){
-    html+='<div class="note-box note-warn">⚠️ <strong>Warning:</strong> This replaces the current inventory ('
-      +escHtml(inventoryData.fileName)+', '+inventoryData.rows.length+' rows) and resets all scan progress. Export first if needed.</div>';
-  }
+  const { rows, barcodeCol } = verifyData;
+  const matchingRows = [];
+  rows.forEach((row, idx) => { if (row[barcodeCol] === barcode) matchingRows.push(idx); });
 
-  $('previewContent').innerHTML=html;
-  $('importModal').classList.add('active');
-}
+  const totalMatches = matchingRows.length;
+  let result, info;
+  const undoData = { barcode };
 
-async function confirmImport(){
-  if(!tempParsedSheet) return;
-  inventoryData={
-    fileName:tempParsedSheet.fileName, sheetName:tempParsedSheet.sheetName,
-    headers:tempParsedSheet.headers, rows:tempParsedSheet.rows,
-    barcodeColIndex:tempParsedSheet.barcodeColIndex, importDate:tempParsedSheet.importDate
-  };
-  sessionData=emptySession();
-  tempParsedSheet=null; tempWorkbook=null; tempFileName='';
-
-  buildBarcodeMap();
-  try{ await saveInventory(); await saveSession(); }
-  catch(e){ showToast('Error saving: '+e.message,'error'); }
-
-  $('importModal').classList.remove('active');
-  updateUI(); resetResultArea();
-  showToast('✓ Imported '+inventoryData.rows.length+' rows from "'+inventoryData.fileName+'" → Sheet: "'+inventoryData.sheetName+'"','success');
-  barcodeInput.focus();
-}
-function cancelImport(){ tempParsedSheet=null; tempWorkbook=null; tempFileName=''; $('importModal').classList.remove('active'); barcodeInput.focus(); }
-
-/* ================= BARCODE INDEX ================= */
-function buildBarcodeMap(){
-  barcodeRowMap={};
-  if(!inventoryData) return;
-  const idx=inventoryData.barcodeColIndex;
-  for(let i=0;i<inventoryData.rows.length;i++){
-    const bc=String(inventoryData.rows[i][idx]).trim();
-    if(!bc) continue;
-    (barcodeRowMap[bc]=barcodeRowMap[bc]||[]).push(i);
-  }
-}
-
-/* ================= SCAN PROCESSING (ROW-LEVEL) ================= */
-function processBarcode(rawInput){
-  if(isProcessing) return;
-  isProcessing=true;
-  initAudio();
-
-  try{
-    const barcode=String(rawInput||'').trim();
-    if(!barcode){ return; }
-
-    if(!inventoryData||!inventoryData.rows||!inventoryData.rows.length){
-      showResultDisplay('error','⚠️','NO INVENTORY',barcode,'Import an Excel inventory file first.');
-      playError(); return;
-    }
-    if(!barcodeRowMap) buildBarcodeMap();
-    if(!sessionData.verifiedRows) sessionData.verifiedRows={};
-
-    const matchingRows=barcodeRowMap[barcode];
-
-    /* ---------- NOT IN INVENTORY ---------- */
-    if(!matchingRows||!matchingRows.length){
-      if(sessionData.unmatchedBarcodes[barcode]){
-        const info=sessionData.unmatchedBarcodes[barcode];
-        info.count++; info.lastScan=new Date().toISOString();
-        sessionData.duplicateCount++;
-        sessionData.history.unshift({
-          time:new Date().toISOString(), barcode:barcode, status:'duplicate',
-          description:'Unmatched — repeat attempt #'+info.count,
-          details:'First recorded at '+formatTime(info.firstScan)
-        });
-        showResultDisplay('duplicate','⚠️','DUPLICATE',barcode,
-          'Unmatched barcode already recorded\nRepeat attempt #'+info.count);
-        playDuplicate();
-      }else{
-        sessionData.unmatchedBarcodes[barcode]={
-          firstScan:new Date().toISOString(), lastScan:new Date().toISOString(), count:1
-        };
-        sessionData.history.unshift({
-          time:new Date().toISOString(), barcode:barcode, status:'false',
-          description:'Not found in inventory', details:''
-        });
-        showResultDisplay('false','✗','FALSE',barcode,'Barcode not found in inventory');
-        playError();
-      }
-      saveSessionDebounced(); updateUI(); return;
-    }
-
-    /* ---------- IN INVENTORY: find next UNSCANNED row ---------- */
-    let nextRow=-1;
-    let alreadyDone=0;
-    for(let k=0;k<matchingRows.length;k++){
-      if(sessionData.verifiedRows[matchingRows[k]]) alreadyDone++;
-      else if(nextRow===-1) nextRow=matchingRows[k];
-    }
-    const total=matchingRows.length;
-
-    /* ---------- ALL UNITS ALREADY SCANNED -> DUPLICATE ---------- */
-    if(nextRow===-1){
+  if (totalMatches === 0) {
+    if (!sessionData.unmatchedBarcodes[barcode]) sessionData.unmatchedBarcodes[barcode] = { count:1, firstScan: saudiDateTime() };
+    else sessionData.unmatchedBarcodes[barcode].count++;
+    result = 'UNKNOWN'; info = 'Not in sheet';
+    playError(); flash('orange'); showToast('UNKNOWN', 'unknown');
+  } else {
+    const unverifiedRow = matchingRows.find(idx => !sessionData.verifiedRows[idx]);
+    if (unverifiedRow !== undefined) {
+      sessionData.verifiedRows[unverifiedRow] = saudiDateTime();
+      const verifiedCount = matchingRows.filter(idx => sessionData.verifiedRows[idx]).length;
+      result = 'TRUE'; info = totalMatches > 1 ? `Unit ${verifiedCount} of ${totalMatches}` : 'Verified';
+      undoData.rowIdx = unverifiedRow;
+      playSuccess(); flash('green'); showToast(totalMatches > 1 ? `✓ ${verifiedCount}/${totalMatches}` : '✓ TRUE', 'true');
+    } else {
       sessionData.duplicateCount++;
-      sessionData.history.unshift({
-        time:new Date().toISOString(), barcode:barcode, status:'duplicate',
-        description:'All '+total+' unit(s) already scanned',
-        details:'No remaining units for this barcode'
-      });
-      showResultDisplay('duplicate','⚠️','DUPLICATE',barcode,
-        'All '+total+' unit(s) of this barcode\nhave already been verified',
-        total+' / '+total+' COMPLETE');
-      playDuplicate();
-      saveSessionDebounced(); updateUI(); return;
-    }
-
-    /* ---------- MARK THIS ONE ROW TRUE ---------- */
-    const row=inventoryData.rows[nextRow];
-    const desc=findFieldValue(row,['description','desc','item description','product','item name','name','item','product description','product name','style']);
-    const box=findFieldValue(row,['box','box number','box no','box#','box num','carton','carton no','ctn']);
-    const pallet=findFieldValue(row,['pallet','pallet number','pallet no','pallet#','pallet num','plt']);
-    const qty=findFieldValue(row,['physical qty','physical quantity','qty','quantity','phys qty','count','pcs','units']);
-
-    const unitNo=alreadyDone+1;
-
-    const parts=[];
-    if(desc) parts.push(desc);
-    if(qty) parts.push('Qty: '+qty);
-    if(box) parts.push('Box: '+box);
-    if(pallet) parts.push('Pallet: '+pallet);
-    parts.push('Excel Row: '+(nextRow+2));
-    const details=parts.join(' | ');
-
-    sessionData.verifiedRows[nextRow]={
-      time:new Date().toISOString(), barcode:barcode,
-      description:desc||'', box:box||'', pallet:pallet||''
-    };
-
-    sessionData.history.unshift({
-      time:new Date().toISOString(), barcode:barcode, status:'true',
-      description:desc||'',
-      details:details+(total>1?(' | Unit '+unitNo+' of '+total):'')
-    });
-
-    showResultDisplay('true','✓','TRUE',barcode,details,
-      total>1 ? ('UNIT '+unitNo+' OF '+total+(unitNo===total?'  ✔ ALL DONE':'  •  '+(total-unitNo)+' LEFT')) : null);
-    playSuccess();
-
-    saveSessionDebounced(); updateUI();
-
-  }finally{
-    isProcessing=false;
-    barcodeInput.value='';
-    barcodeInput.focus();
-  }
-}
-
-function findFieldValue(row,aliases){
-  if(!inventoryData||!inventoryData.headers) return '';
-  const h=inventoryData.headers;
-  for(const a of aliases){
-    for(let i=0;i<h.length;i++){
-      if(h[i].toLowerCase().trim()===a.toLowerCase()){
-        const v=row[i];
-        if(v!==null&&v!==undefined&&String(v).trim()!=='') return String(v).trim();
-      }
+      result = 'DUPLICATE'; info = `All ${totalMatches} already verified`;
+      playDuplicate(); flash('orange'); showToast('DUPLICATE', 'dup');
     }
   }
-  for(const a of aliases){
-    for(let i=0;i<h.length;i++){
-      if(h[i].toLowerCase().includes(a.toLowerCase())){
-        const v=row[i];
-        if(v!==null&&v!==undefined&&String(v).trim()!=='') return String(v).trim();
-      }
+
+  undoData.result = result;
+  sessionData.lastVerifyAction = undoData;
+  sessionData.history.unshift({ barcode, result, info, time: saudiDateTime() });
+
+  updateVerifyStats();
+  renderVerifyHistory();
+  showLastVerifyScan(barcode, result, info);
+
+  persistSession();
+}
+
+function undoLastVerifyScan() {
+  if (!verifyData) { showToast('No verify session', 'dup', 900); return; }
+  const a = sessionData.lastVerifyAction;
+  if (!a) { showToast('Nothing to undo', 'dup', 900); playError(); return; }
+
+  if (a.result === 'TRUE' && a.rowIdx !== undefined) {
+    delete sessionData.verifiedRows[a.rowIdx];
+  } else if (a.result === 'DUPLICATE') {
+    sessionData.duplicateCount = Math.max(0, sessionData.duplicateCount - 1);
+  } else if (a.result === 'UNKNOWN') {
+    const u = sessionData.unmatchedBarcodes[a.barcode];
+    if (u) {
+      if (u.count > 1) u.count--;
+      else delete sessionData.unmatchedBarcodes[a.barcode];
     }
   }
-  return '';
+  if (sessionData.history.length > 0) sessionData.history.shift();
+  sessionData.lastVerifyAction = null;
+  updateVerifyStats();
+  renderVerifyHistory();
+  document.getElementById('verifyLastScan').style.display = 'none';
+  playInfo();
+  showToast('↩ Undone', 'inv-ok', 900);
+  persistSession();
 }
 
-function showResultDisplay(type,icon,status,barcode,details,chip){
-  let cls='',sCls='';
-  if(type==='true'){cls='result-true';sCls='true-text';}
-  else if(type==='false'){cls='result-false';sCls='false-text';}
-  else if(type==='duplicate'){cls='result-duplicate';sCls='duplicate-text';}
-
-  resultArea.className='result-area';
-  void resultArea.offsetWidth;            // restart animation
-  resultArea.className='result-area '+cls;
-
-  const dHtml=details?escHtml(details).replace(/\n/g,'<br>').replace(/ \| /g,' &nbsp;•&nbsp; '):'';
-  resultArea.innerHTML=
-    '<div class="result-icon">'+icon+'</div>'+
-    '<div class="result-status '+sCls+'">'+status+'</div>'+
-    '<div class="result-barcode">'+escHtml(barcode)+'</div>'+
-    (dHtml?'<div class="result-details">'+dHtml+'</div>':'')+
-    (chip?'<div class="unit-chip '+sCls+'">'+escHtml(chip)+'</div>':'');
-}
-function resetResultArea(){
-  resultArea.className='result-area';
-  resultArea.innerHTML=
-    '<div class="result-icon">📦</div>'+
-    '<div style="color:var(--text-muted);font-size:15px;">Ready to scan</div>'+
-    '<div style="color:var(--text-muted);font-size:12px;margin-top:4px;">Scan a barcode or type it manually</div>';
+function showLastVerifyScan(barcode, result, info) {
+  const el = document.getElementById('verifyLastScan');
+  const cls = result === 'TRUE' ? 'success' : result === 'DUPLICATE' ? 'warning' : 'error';
+  el.innerHTML = `<div class="banner ${cls}" style="font-size:1.4rem">
+    <span style="font-size:2rem;margin-right:10px">${result === 'TRUE' ? '✅' : result === 'DUPLICATE' ? '⚠️' : '❓'}</span>
+    <strong>${esc(barcode)}</strong> &nbsp;→&nbsp; ${result}
+    ${info ? `<span style="font-size:1rem;opacity:0.9;margin-left:auto;background:rgba(255,255,255,0.3);padding:4px 12px;border-radius:20px">${esc(info)}</span>` : ''}
+  </div>`;
+  el.style.display = 'block';
 }
 
-/* ================= EXPORT ================= */
-function exportExcel(){
-  if(!inventoryData||!inventoryData.rows||!inventoryData.rows.length){
-    showToast('No inventory to export.','error'); return;
-  }
-  initAudio();
-
-  try{
-    const headers=[...inventoryData.headers,'Scan Result'];
-    const bcIdx=inventoryData.barcodeColIndex;
-    const resultCol=inventoryData.headers.length;
-
-    /* --- locate inventory date column (safe detection) --- */
-    let dateColIndex=-1;
-    const exactDate=['inventory date','count date','inv date','stock date','stock count date','date'];
-    for(let i=0;i<inventoryData.headers.length;i++){
-      const h=inventoryData.headers[i].toLowerCase().trim();
-      if(exactDate.includes(h)){ dateColIndex=i; break; }
-    }
-    if(dateColIndex===-1){
-      for(let i=0;i<inventoryData.headers.length;i++){
-        const h=inventoryData.headers[i].toLowerCase().trim();
-        if(h.includes('date')&&(h.includes('inventory')||h.includes('count')||h.includes('stock'))){ dateColIndex=i; break; }
-      }
-    }
-
-    const stampDateTime=saudiDateTime();   // DD-MM-YYYY HH:MM:SS
-    const stampDateOnly=saudiDateOnly();   // DD-MM-YYYY (filename)
-
-    if(!sessionData.verifiedRows) sessionData.verifiedRows={};
-
-    /* --- count duplicates in the ORIGINAL template --- */
-    const counts={};
-    inventoryData.rows.forEach(r=>{
-      const bc=String(r[bcIdx]).trim();
-      if(bc) counts[bc]=(counts[bc]||0)+1;
-    });
-
-    const aoa=[headers];
-    const meta=[];   // per data row: {isDup,isVerified,isUnmatched}
-
-    /* --- original rows (never mutate inventoryData) --- */
-    for(let i=0;i<inventoryData.rows.length;i++){
-      const src=inventoryData.rows[i];
-      const nr=src.slice();
-      while(nr.length<inventoryData.headers.length) nr.push('');
-
-      if(dateColIndex!==-1) nr[dateColIndex]=stampDateTime;
-
-      const verified=!!sessionData.verifiedRows[i];
-      nr.push(verified?'TRUE':'FALSE');
-
-      const bc=String(src[bcIdx]).trim();
-      meta.push({ isDup: !!(bc&&counts[bc]>1), isVerified:verified, isUnmatched:false });
-      aoa.push(nr);
-    }
-
-    /* --- unmatched barcodes appended as new rows --- */
-    const unmatchedKeys=Object.keys(sessionData.unmatchedBarcodes);
-    for(const bc of unmatchedKeys){
-      const nr=new Array(inventoryData.headers.length).fill('');
-      nr[bcIdx]=bc;
-      if(dateColIndex!==-1) nr[dateColIndex]=stampDateTime;
-     nr.push('UNKNOWN');
-      meta.push({ isDup:false, isVerified:false, isUnmatched:true });
-      aoa.push(nr);
-    }
-
-    const ws=XLSX.utils.aoa_to_sheet(aoa);
-
-    /* --- force barcode column to TEXT (protect leading zeros) --- */
-    for(let r=1;r<aoa.length;r++){
-      const addr=XLSX.utils.encode_cell({r:r,c:bcIdx});
-      if(ws[addr]){ ws[addr].t='s'; ws[addr].v=String(ws[addr].v); ws[addr].z='@'; }
-    }
-
-    /* --- styling --- */
-    const lastCol=headers.length-1;
-
-    // header style
-    for(let c=0;c<=lastCol;c++){
-      const a=XLSX.utils.encode_cell({r:0,c:c});
-      if(!ws[a]) ws[a]={t:'s',v:''};
-      ws[a].s={
-        font:{bold:true,color:{rgb:'FFFFFF'},sz:11},
-        fill:{patternType:'solid',fgColor:{rgb:'1F3864'}},
-        alignment:{horizontal:'center',vertical:'center',wrapText:true},
-        border:thinBorder('999999')
-      };
-    }
-
-    for(let i=0;i<meta.length;i++){
-      const rowNum=i+1;
-      const m=meta[i];
-
-      let fillRGB=null, fontRGB=null;
-      if(m.isUnmatched){ fillRGB='FFD8A8'; fontRGB='7C3A00'; }   // orange = new/unmatched
-      else if(m.isDup){ fillRGB='FFC7CE'; fontRGB='9C0006'; }    // red = repeated barcode row
-
-      for(let c=0;c<=lastCol;c++){
-        const a=XLSX.utils.encode_cell({r:rowNum,c:c});
-        if(!ws[a]) ws[a]={t:'s',v:''};
-        const st={ border:thinBorder('D0D0D0'), alignment:{vertical:'center'} };
-        if(fillRGB){
-          st.fill={patternType:'solid',fgColor:{rgb:fillRGB}};
-          st.font={color:{rgb:fontRGB},bold:false,sz:11};
-        }
-        ws[a].s=st;
-      }
-
-      // Scan Result cell emphasised
-   const ra=XLSX.utils.encode_cell({r:rowNum,c:resultCol});
-      if(!ws[ra]) ws[ra]={t:'s',v:''};
-
-      let resultFont='9C0006', resultFill='FFC7CE'; // default FALSE = red
-      if(m.isVerified){ resultFont='006100'; resultFill='C6EFCE'; }       // TRUE = green
-      else if(m.isUnmatched){ resultFont='7C3A00'; resultFill='FFD8A8'; } // UNKNOWN = orange
-
-      ws[ra].s={
-        border:thinBorder('D0D0D0'),
-        alignment:{horizontal:'center',vertical:'center'},
-        font:{bold:true,sz:11,color:{rgb:resultFont}},
-        fill:{patternType:'solid',fgColor:{rgb:resultFill}}
-      };
-    }
-
-    /* --- column widths --- */
-    ws['!cols']=headers.map((h,i)=>{
-      let w=Math.max(10,Math.min(38,String(h).length+4));
-      if(i===bcIdx) w=Math.max(w,20);
-      if(i===resultCol) w=14;
-      if(i===dateColIndex) w=22;
-      return {wch:w};
-    });
-    ws['!freeze']={xSplit:0,ySplit:1};
-    ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:aoa.length-1,c:lastCol}})};
-
-    const wb=XLSX.utils.book_new();
-    const outName=(inventoryData.sheetName||'Inventory').substring(0,31);
-    XLSX.utils.book_append_sheet(wb,ws,outName);
-
-    const fn='LSC_Warehouse_Inventory_'+stampDateOnly+'.xlsx';
-    XLSX.writeFile(wb,fn,{cellStyles:true});
-
-    const verifiedTotal=Object.keys(sessionData.verifiedRows).length;
-    showToast('✓ Exported '+fn+'  —  '+verifiedTotal+' TRUE, '+unmatchedKeys.length+' unmatched row(s) appended','success');
-    playSuccess();
-  }catch(e){
-    console.error('Export error:',e);
-    showToast('Export failed: '+e.message,'error');
-  }
-}
-function thinBorder(rgb){
-  const s={style:'thin',color:{rgb:rgb}};
-  return {top:s,bottom:s,left:s,right:s};
+function updateVerifyStats() {
+  if (!verifyData) return;
+  const total = verifyData.rows.length;
+  const scanned = Object.keys(sessionData.verifiedRows).length;
+  const unmatched = Object.keys(sessionData.unmatchedBarcodes).length;
+  document.getElementById('vTotal').textContent = total;
+  document.getElementById('vScanned').textContent = scanned;
+  document.getElementById('vRemaining').textContent = total - scanned;
+  document.getElementById('vDuplicates').textContent = sessionData.duplicateCount;
+  document.getElementById('vUnmatched').textContent = unmatched;
+  document.getElementById('vProgress').style.width = total ? (scanned/total*100)+'%' : '0%';
 }
 
-/* ================= RESET ================= */
-function handleReset(){
-  showConfirm('Reset All Data',
-    'This deletes the imported inventory and all scan history from this browser. Export your results first if needed. This cannot be undone.',
-    async ()=>{
-      inventoryData=null; barcodeRowMap=null;
-      sessionData=emptySession();
-      try{ await dbClear(STORE_INVENTORY); await dbClear(STORE_SESSION); }catch(e){console.error(e);}
-      updateUI(); resetResultArea();
-      showToast('All data cleared.','info');
-      barcodeInput.focus();
-    });
-}
-
-/* ================= CONFIRM MODAL ================= */
-let confirmCb=null;
-function showConfirm(title,text,cb){
-  $('confirmTitle').textContent=title;
-  $('confirmText').textContent=text;
-  confirmCb=cb;
-  $('confirmModal').classList.add('active');
-}
-function handleConfirmYes(){ $('confirmModal').classList.remove('active'); if(confirmCb) confirmCb(); confirmCb=null; }
-function handleConfirmNo(){ $('confirmModal').classList.remove('active'); confirmCb=null; barcodeInput.focus(); }
-
-/* ================= UI ================= */
-function updateUI(){
-  if(!sessionData) sessionData=emptySession();
-  if(!sessionData.verifiedRows) sessionData.verifiedRows={};
-
-  const has=inventoryData&&inventoryData.rows&&inventoryData.rows.length>0;
-
-  if(has){
-    if(!barcodeRowMap) buildBarcodeMap();
-
-    $('statRows').textContent=inventoryData.rows.length;
-    $('statFileName').textContent=inventoryData.fileName;
-    $('headerFileInfo').textContent='📄 '+inventoryData.fileName+'  →  '+(inventoryData.sheetName||'');
-
-    const uniqueCount=Object.keys(barcodeRowMap).length;
-    let scannableRows=0, dupBarcodes=0, dupRows=0;
-    for(const k in barcodeRowMap){
-      const n=barcodeRowMap[k].length;
-      scannableRows+=n;
-      if(n>1){ dupBarcodes++; dupRows+=n; }
-    }
-    $('statUnique').textContent=uniqueCount;
-    $('statDupRows').textContent = dupBarcodes
-      ? (dupBarcodes+' repeated → '+dupRows+' rows')
-      : 'no repeated barcodes';
-
-    const verified=Object.keys(sessionData.verifiedRows).length;
-    $('statSuccess').textContent=verified;
-
-    const pct=scannableRows>0?Math.round((verified/scannableRows)*100):0;
-    $('progressBar').style.width=pct+'%';
-    $('statProgress').textContent=verified+' / '+scannableRows+' units ('+pct+'%)';
-
-    $('exportBtn').disabled=false;
-    $('alertBar').classList.add('hidden');
-  }else{
-    $('statRows').textContent='0';
-    $('statUnique').textContent='0';
-    $('statDupRows').textContent='—';
-    $('statSuccess').textContent='0';
-    $('statFileName').textContent='—';
-    $('headerFileInfo').textContent='No inventory loaded';
-    $('progressBar').style.width='0%';
-    $('statProgress').textContent='0% complete';
-    $('exportBtn').disabled=true;
-    $('alertBar').classList.remove('hidden');
-    $('alertText').textContent='No inventory loaded. Click "Import Excel" to begin.';
-  }
-
-  $('statUnmatched').textContent=Object.keys(sessionData.unmatchedBarcodes).length;
-  $('statDuplicates').textContent=sessionData.duplicateCount;
-
-  renderHistory();
-}
-
-function renderHistory(){
-  if(!sessionData||!sessionData.history.length){
-    historyList.innerHTML='<div class="history-empty">No scans yet. Import inventory and start scanning.</div>';
-    return;
-  }
-  const list=currentFilter==='all'?sessionData.history:sessionData.history.filter(h=>h.status===currentFilter);
-  if(!list.length){
-    historyList.innerHTML='<div class="history-empty">No "'+currentFilter+'" scans.</div>';
-    return;
-  }
-  historyList.innerHTML=list.slice(0,200).map(h=>{
-    let bc,bt;
-    if(h.status==='true'){bc='badge-true';bt='✓ TRUE';}
-    else if(h.status==='false'){bc='badge-false';bt='✗ FALSE';}
-    else{bc='badge-duplicate';bt='⚠ DUP';}
-    return '<div class="history-item">'+
-      '<span class="history-badge '+bc+'">'+bt+'</span>'+
-      '<span class="history-barcode">'+escHtml(h.barcode)+'</span>'+
-      '<span class="history-desc">'+escHtml(h.details||h.description||'')+'</span>'+
-      '<span class="history-time">'+formatTime(h.time)+'</span>'+
-    '</div>';
+function renderVerifyHistory() {
+  const body = document.getElementById('vHistBody');
+  const hist = sessionData.history.slice(0, 200);
+  document.getElementById('vHistCount').textContent = sessionData.history.length + ' scans';
+  body.innerHTML = hist.map((h,i) => {
+    const cls = h.result === 'TRUE' ? 'chip-green' : h.result === 'DUPLICATE' ? 'chip-yellow' : 'chip-red';
+    return `<tr><td>${i+1}</td><td style="font-family:monospace;font-size:1rem;font-weight:bold">${esc(h.barcode)}</td>
+      <td><span class="chip ${cls}">${h.result}</span></td>
+      <td style="font-size:0.85rem;color:var(--text2)">${esc(h.info||'')}</td>
+      <td style="font-size:0.85rem;color:var(--text2)">${esc(h.time)}</td></tr>`;
   }).join('');
 }
 
-/* ================= EVENTS ================= */
-function setupEvents(){
-  $('importBtn').addEventListener('click',handleImportClick);
-  fileInput.addEventListener('change',handleFileSelect);
-  $('exportBtn').addEventListener('click',exportExcel);
-  $('resetBtn').addEventListener('click',handleReset);
-  $('themeToggle').addEventListener('click',toggleTheme);
-  $('soundToggle').addEventListener('click',toggleSound);
-  $('checkBtn').addEventListener('click',()=>processBarcode(barcodeInput.value));
+// EXPORT: original columns untouched; append "Scan Result" and "Scan Time".
+function exportVerifyExcel() {
+  if (!verifyData) { alert('No data loaded.'); return; }
+  const { headers, rows, barcodeCol } = verifyData;
 
-  $('loadSheet').addEventListener('click',handleLoadSheet);
-  $('cancelSheet').addEventListener('click',cancelSheetSelect);
-  $('confirmBarcodeCol').addEventListener('click',handleConfirmBarcodeCol);
-  $('cancelBarcodeCol').addEventListener('click',cancelBarcodeCol);
-  $('confirmImport').addEventListener('click',confirmImport);
-  $('cancelImport').addEventListener('click',cancelImport);
-  $('confirmYes').addEventListener('click',handleConfirmYes);
-  $('confirmNo').addEventListener('click',handleConfirmNo);
+  const exportHeaders = [...headers, 'Scan Result', 'Scan Time'];
+  const scanResultCol = headers.length;
+  const scanTimeCol   = headers.length + 1;
 
-  barcodeInput.addEventListener('keydown',e=>{
-    if(e.key==='Enter'||e.keyCode===13){
-      e.preventDefault(); e.stopPropagation();
-      processBarcode(barcodeInput.value);
-    }
-  });
-  // guard against scanners sending Tab as suffix
-  barcodeInput.addEventListener('keyup',e=>{
-    if(e.key==='Tab'&&barcodeInput.value.trim()){ processBarcode(barcodeInput.value); }
+  const barcodeCounts = {};
+  rows.forEach(r => { const bc = r[barcodeCol]; barcodeCounts[bc] = (barcodeCounts[bc]||0)+1; });
+
+  const exportRows = rows.map((row, idx) => {
+    const r = new Array(exportHeaders.length).fill('');
+    for (let i = 0; i < headers.length; i++) r[i] = row[i] != null ? row[i] : '';
+    const scanTime = sessionData.verifiedRows[idx] || '';
+    r[scanResultCol] = scanTime ? 'TRUE' : 'FALSE';
+    r[scanTimeCol]   = scanTime;
+    return r;
   });
 
-  ['click','keydown','touchstart'].forEach(ev=>{
-    document.addEventListener(ev,()=>initAudio(),{once:true});
+  Object.entries(sessionData.unmatchedBarcodes).forEach(([bc, data]) => {
+    const r = new Array(exportHeaders.length).fill('');
+    r[barcodeCol]    = bc;
+    r[scanResultCol] = 'UNKNOWN';
+    r[scanTimeCol]   = data.firstScan;
+    exportRows.push(r);
   });
 
-  document.querySelectorAll('.filter-tab').forEach(tab=>{
-    tab.addEventListener('click',()=>{
-      document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
-      tab.classList.add('active');
-      currentFilter=tab.getAttribute('data-filter');
-      renderHistory();
+  const ws = XLSX.utils.aoa_to_sheet([exportHeaders, ...exportRows]);
+
+  const hdrStyle = { fill:{fgColor:{rgb:'1F3864'}}, font:{color:{rgb:'FFFFFF'},bold:true}, alignment:{horizontal:'center'} };
+  exportHeaders.forEach((_,c) => { const addr = XLSX.utils.encode_cell({r:0,c}); if (ws[addr]) ws[addr].s = hdrStyle; });
+
+  const unmatchedStart = rows.length;
+  exportRows.forEach((row, ri) => {
+    const excelRow    = ri + 1;
+    const isUnmatched = ri >= unmatchedStart;
+    const bc          = row[barcodeCol];
+    const isDuplicate = !isUnmatched && barcodeCounts[bc] > 1;
+    const scanResult  = row[scanResultCol];
+    exportHeaders.forEach((_,c) => {
+      const addr = XLSX.utils.encode_cell({r:excelRow,c});
+      if (!ws[addr]) ws[addr] = { v:'', t:'s' };
+      let style = { alignment:{horizontal:'center'} };
+      if (isUnmatched)      { style.fill={fgColor:{rgb:'FFD8A8'}}; style.font={color:{rgb:'7C3A00'}}; }
+      else if (isDuplicate) { style.fill={fgColor:{rgb:'FFC7CE'}}; style.font={color:{rgb:'9C0006'}}; }
+      if (c === scanResultCol || c === scanTimeCol) {
+        if (scanResult === 'TRUE')         { style.fill={fgColor:{rgb:'C6EFCE'}}; style.font={color:{rgb:'006100'},bold:true}; }
+        else if (scanResult === 'UNKNOWN') { style.fill={fgColor:{rgb:'FFD8A8'}}; style.font={color:{rgb:'7C3A00'},bold:true}; }
+        else                               { style.fill={fgColor:{rgb:'FFC7CE'}}; style.font={color:{rgb:'9C0006'},bold:true}; }
+      }
+      ws[addr].s = style;
     });
   });
 
-  ['importModal','sheetModal','barcodeColModal','confirmModal'].forEach(id=>{
-    $(id).addEventListener('click',e=>{
-      if(e.target===$(id)){ $(id).classList.remove('active'); barcodeInput.focus(); }
+  ws['!cols'] = exportHeaders.map((h,i) => ({ wch: Math.max(h.length+2, i===barcodeCol?20:(i===scanTimeCol?22:14)) }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Verification');
+  XLSX.writeFile(wb, `LSC_Verification_${saudiDateOnly()}.xlsx`, { cellStyles:true });
+}
+
+// =========================================================================
+// ======================== INVENTORY SYSTEM ================================
+// =========================================================================
+document.getElementById('invCodeInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); const val = this.value.trim(); if (val) startInventoryCode(val); this.value=''; }
+});
+document.getElementById('invItemInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); const val = this.value.trim(); if (val) scanInventoryItem(val); this.value=''; }
+});
+
+function startInventoryCode(code) {
+  unlockAudio();
+  if (!sessionData.inventories[code]) sessionData.inventories[code] = { code, createdAt: saudiDateTime(), lastUpdatedAt: saudiDateTime(), items: [] };
+  sessionData.currentInventoryCode = code;
+  refreshInvScanUI(); playInfo(); showToast(`INV: ${code}`, 'inv-ok'); updateBadges();
+  persistSession();
+}
+
+// Scan inventory item — duplicate warning added. Does NOT block scanning.
+function scanInventoryItem(barcode) {
+  const code = sessionData.currentInventoryCode;
+  if (!code || !sessionData.inventories[code]) return;
+  unlockAudio();
+  const inv = sessionData.inventories[code];
+  const prevCount = inv.items.filter(i => i.barcode === barcode).length;
+
+  inv.items.push({ barcode, scannedAt: saudiDateTime() });
+  inv.lastUpdatedAt = saudiDateTime();
+
+  if (prevCount > 0) {
+    // Duplicate in same INV — warn but still add (multiple units are valid)
+    playDuplicate(); flash('orange');
+    showToast(`⚠️ DUP ×${prevCount+1}`, 'dup', 1100);
+    document.getElementById('invLastScan').innerHTML =
+      `<div class="banner warning" style="font-size:1.3rem">⚠️ <strong>${esc(barcode)}</strong> added — duplicate #${prevCount+1} in this INV</div>`;
+  } else {
+    playSuccess(); flash('green'); showToast('✓ Added', 'true', 800);
+    document.getElementById('invLastScan').innerHTML =
+      `<div class="banner success" style="font-size:1.3rem">✅ <strong>${esc(barcode)}</strong> added</div>`;
+  }
+
+  refreshInvScanUI(); updateBadges();
+  persistSession();
+}
+
+function undoLastInvScan() {
+  const code = sessionData.currentInventoryCode;
+  if (!code || !sessionData.inventories[code]) { showToast('No active INV', 'dup', 900); return; }
+  const inv = sessionData.inventories[code];
+  if (inv.items.length === 0) { showToast('Nothing to undo', 'dup', 900); playError(); return; }
+  const removed = inv.items.pop();
+  inv.lastUpdatedAt = saudiDateTime();
+  refreshInvScanUI(); updateBadges();
+  playInfo();
+  showToast(`↩ Removed ${removed.barcode.slice(0,10)}...`, 'inv-ok', 900);
+  persistSession();
+}
+
+function finishInventoryCode() {
+  unlockAudio();
+  sessionData.currentInventoryCode = null;
+  refreshInvScanUI(); playInfo(); showToast('Ready for next INV', 'inv-ok', 1000);
+  persistSession();
+}
+
+function refreshInvScanUI() {
+  const code = sessionData.currentInventoryCode;
+  if (code && sessionData.inventories[code]) {
+    document.getElementById('invStep1').classList.add('hidden');
+    document.getElementById('invStep2').classList.remove('hidden');
+    document.getElementById('invCurrentCode').textContent = code;
+    const inv = sessionData.inventories[code];
+    const activeItems = getActiveItems(code);
+    document.getElementById('invItemCount').textContent = activeItems.length + ' in stock';
+
+    const items = [...inv.items].reverse();
+    // Compute barcode duplicate counts for the ×N badge
+    const counts = {};
+    inv.items.forEach(it => { counts[it.barcode] = (counts[it.barcode]||0)+1; });
+
+    document.getElementById('invScanCount').textContent = inv.items.length + ' scanned';
+    document.getElementById('invItemsBody').innerHTML = items.slice(0,150).map((item,i) => {
+      const isOut = isStockedOut(code, item.barcode, item.scannedAt);
+      const dup = counts[item.barcode];
+      const dupBadge = dup > 1 ? `<span class="chip chip-yellow" style="margin-left:8px;font-size:0.7rem">×${dup}</span>` : '';
+      return `<tr style="${isOut?'opacity:0.4;text-decoration:line-through':''}">
+        <td>${inv.items.length - i}</td>
+        <td style="font-family:monospace;font-size:1.1rem;font-weight:bold">${esc(item.barcode)}${dupBadge}</td>
+        <td style="font-size:0.8rem;color:var(--text2)">${esc(item.scannedAt)}</td></tr>`;
+    }).join('');
+    setTimeout(() => document.getElementById('invItemInput')?.focus(), 30);
+  } else {
+    document.getElementById('invStep1').classList.remove('hidden');
+    document.getElementById('invStep2').classList.add('hidden');
+    document.getElementById('invLastScan').innerHTML = '';
+    setTimeout(() => document.getElementById('invCodeInput')?.focus(), 30);
+  }
+}
+
+// ===== VIEW INVENTORY =====
+function renderInvView() {
+  const grid = document.getElementById('invGrid');
+  const empty = document.getElementById('invViewEmpty');
+  const search = document.getElementById('invSearchInput').value.trim().toLowerCase();
+  const codes = Object.keys(sessionData.inventories);
+  if (codes.length === 0) { empty.classList.remove('hidden'); grid.innerHTML=''; updateBatchStockOutBtn(); return; }
+  empty.classList.add('hidden');
+  const filtered = codes.filter(code => {
+    if (!search) return true;
+    if (code.toLowerCase().includes(search)) return true;
+    return sessionData.inventories[code].items.some(it => it.barcode.toLowerCase().includes(search));
+  });
+  grid.innerHTML = filtered.map(code => {
+    const inv = sessionData.inventories[code];
+    const active = getActiveItems(code);
+    const outCount = inv.items.length - active.length;
+    return `<div class="inv-card">
+      <div class="inv-card-head" onclick="this.nextElementSibling.classList.toggle('open')">
+        <h4>📦 ${esc(code)}</h4>
+        <div><span class="chip chip-green">${active.length} in</span>${outCount>0?`<span class="chip chip-red">${outCount} out</span>`:''}<span style="margin-left:8px">▼</span></div>
+      </div>
+      <div class="inv-card-body">
+        <div style="font-size:0.75rem;color:var(--text2);margin:12px 0">Created: ${esc(inv.createdAt)}</div>
+        ${active.length>0 ? active.map(item => {
+          const key = stockOutKey(code, item.barcode, item.scannedAt);
+          const checked = selectedStockOutItems.has(key);
+          return `<div class="inv-item-row">
+            <div style="display:flex;gap:10px;align-items:center">
+              <input type="checkbox" ${checked?'checked':''}
+                onchange="toggleStockOutItem('${esc(code)}','${esc(item.barcode)}','${esc(item.scannedAt)}')">
+              <span style="font-family:monospace;font-weight:bold">${esc(item.barcode)}</span>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span style="font-size:0.75rem;color:var(--text2)">${esc(item.scannedAt)}</span>
+              <button class="btn btn-danger btn-sm" onclick="singleStockOut('${esc(code)}','${esc(item.barcode)}','${esc(item.scannedAt)}')">Out</button>
+            </div>
+          </div>`;
+        }).join('') : '<div style="padding:10px;text-align:center;color:var(--text2);font-style:italic">All items stocked out</div>'}
+      </div></div>`;
+  }).join('');
+  updateBatchStockOutBtn();
+}
+document.getElementById('invSearchInput').addEventListener('input', renderInvView);
+
+function toggleStockOutItem(code, barcode, scannedAt) {
+  const key = stockOutKey(code, barcode, scannedAt);
+  if (selectedStockOutItems.has(key)) selectedStockOutItems.delete(key);
+  else selectedStockOutItems.add(key);
+  updateBatchStockOutBtn();
+}
+
+function updateBatchStockOutBtn() {
+  const btn = document.getElementById('btnBatchStockOut');
+  if (!btn) return;
+  const n = selectedStockOutItems.size;
+  btn.textContent = `📤 Stock Out Selected (${n})`;
+  btn.classList.toggle('hidden', n === 0);
+}
+
+function processBatchStockOut() {
+  if (selectedStockOutItems.size === 0) return;
+  const reason = prompt('Reason for stock out:', 'Sold');
+  if (reason === null) return;
+  const finalReason = reason.trim() || 'Unspecified';
+  if (!confirm(`Stock out ${selectedStockOutItems.size} item(s) as "${finalReason}"?`)) return;
+
+  let removed = 0, skipped = 0;
+  for (const key of [...selectedStockOutItems]) {
+    const [code, barcode, scannedAt] = key.split('|');
+    if (isStockedOut(code, barcode, scannedAt)) { skipped++; continue; }
+    sessionData.stockOutLog.push({
+      barcode, fromInventory: code, removedAt: saudiDateTime(),
+      originalScanAt: scannedAt, status: 'removed', reason: finalReason
     });
-  });
-
-  document.addEventListener('keydown',e=>{
-    if(e.key==='Escape'){
-      ['importModal','sheetModal','barcodeColModal','confirmModal'].forEach(id=>$(id).classList.remove('active'));
-      barcodeInput.focus();
-    }
-  });
-
-  // keep focus on the scan field
-  document.addEventListener('click',e=>{
-    const tag=e.target.tagName.toLowerCase();
-    const interactive=['button','input','select','textarea','a','option','label'];
-    if(!interactive.includes(tag)&&!e.target.closest('.modal-overlay')){
-      setTimeout(()=>barcodeInput.focus(),40);
-    }
-  });
-
-  window.addEventListener('beforeunload',()=>{ clearTimeout(saveTimer); saveSession(); });
+    removed++;
+  }
+  selectedStockOutItems.clear();
+  renderInvView(); updateBadges(); playInfo();
+  showToast(`${removed} stocked out`, 'dup', 1100);
+  if (skipped > 0) console.warn(`${skipped} already stocked out (skipped)`);
+  persistSession();
 }
 
-/* ================= INIT ================= */
-async function init(){
-  initTheme(); initSoundSetting();
-
-  if(typeof XLSX==='undefined'){
-    showToast('Excel library failed to load. Check internet or place xlsx.bundle.js next to this file.','error');
-  }
-
-  try{ await openDB(); await loadFromDB(); }
-  catch(e){ console.error(e); showToast('Browser storage error — data may not persist.','error'); }
-
-  if(!sessionData) sessionData=emptySession();
-  if(inventoryData) buildBarcodeMap();
-
-  setupEvents(); updateUI();
-
-  if(inventoryData&&inventoryData.rows&&inventoryData.rows.length){
-    const v=Object.keys(sessionData.verifiedRows||{}).length;
-    showToast('Session restored: '+inventoryData.fileName+' ('+inventoryData.rows.length+' rows, '+v+' units verified)','info');
-  }
-  barcodeInput.focus();
+function singleStockOut(code, barcode, scannedAt) {
+  const reason = prompt(`Stock out "${barcode}" from "${code}"?\n\nReason (Sold / Damaged / Returned / Transfer / Missing / Other):`, 'Sold');
+  if (reason === null) return;  // cancelled
+  const finalReason = reason.trim() || 'Unspecified';
+  unlockAudio();
+  sessionData.stockOutLog.push({
+    barcode, fromInventory: code, removedAt: saudiDateTime(),
+    originalScanAt: scannedAt, status: 'removed', reason: finalReason
+  });
+  const key = stockOutKey(code, barcode, scannedAt);
+  selectedStockOutItems.delete(key);
+  renderInvView(); updateBadges(); playInfo(); showToast('Stocked Out', 'dup', 800);
+  persistSession();
 }
 
-if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init);
-else init();
+// ===== STOCK OUT PAGE =====
+document.getElementById('soScanInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); const val = this.value.trim(); if (val) processSingleStockOut(val); this.value=''; }
+});
+document.getElementById('soBulkArea').addEventListener('input', function() {
+  const lines = this.value.split('\n').map(l=>l.trim()).filter(l=>l);
+  document.getElementById('soBulkCount').textContent = lines.length + ' lines';
+});
 
-})();
+function currentReason() {
+  const el = document.getElementById('soReason');
+  return (el && el.value) ? el.value : 'Sold';
+}
+
+function processSingleStockOut(barcode) {
+  unlockAudio();
+  const reason = currentReason();
+  const result = stockOutBarcode(barcode, reason);
+  const el = document.getElementById('soScanResult');
+  if (result.found) {
+    el.innerHTML = `<div class="banner success">✅ <strong>${esc(barcode)}</strong> removed from <strong>${esc(result.fromInventory)}</strong> <span class="chip chip-yellow" style="margin-left:auto">${esc(reason)}</span></div>`;
+    playSuccess(); flash('green');
+  } else {
+    el.innerHTML = `<div class="banner error">❌ <strong>${esc(barcode)}</strong> not found in inventory</div>`;
+    playError(); flash('red');
+  }
+  renderStockOut(); updateBadges();
+  persistSession();
+}
+
+function processBulkStockOut() {
+  unlockAudio();
+  const text = document.getElementById('soBulkArea').value;
+  const lines = text.split('\n').map(l=>l.trim()).filter(l=>l);
+  if (lines.length===0) { alert('No barcodes pasted.'); return; }
+  const reason = currentReason();
+  if (!confirm(`Stock out ${lines.length} item(s) as "${reason}"?`)) return;
+  let found=0, notFound=0;
+  for (const barcode of lines) { const res = stockOutBarcode(barcode, reason); if (res.found) found++; else notFound++; }
+  document.getElementById('soBulkResult').innerHTML = `<div class="banner ${notFound>0?'warning':'success'}">Processed ${lines.length}: <strong>${found}</strong> removed, <strong>${notFound}</strong> not found.</div>`;
+  document.getElementById('soBulkArea').value=''; document.getElementById('soBulkCount').textContent='0 lines';
+  renderStockOut(); updateBadges(); playInfo();
+  persistSession();
+}
+
+function stockOutBarcode(barcode, reason = 'Sold') {
+  for (const code of Object.keys(sessionData.inventories)) {
+    const inv = sessionData.inventories[code];
+    for (const item of inv.items) {
+      if (item.barcode === barcode && !isStockedOut(code, item.barcode, item.scannedAt)) {
+        sessionData.stockOutLog.push({
+          barcode: item.barcode, fromInventory: code, removedAt: saudiDateTime(),
+          originalScanAt: item.scannedAt, status: 'removed', reason
+        });
+        return { found:true, fromInventory: code };
+      }
+    }
+  }
+  sessionData.stockOutLog.push({
+    barcode, fromInventory: 'N/A', removedAt: saudiDateTime(),
+    originalScanAt: '', status: 'not_found', reason
+  });
+  return { found:false };
+}
+
+function renderStockOut() {
+  const log = sessionData.stockOutLog.filter(e => e.status==='removed');
+  const todayStr = saudiDateOnly();
+  const weekAgo = new Date(saudiNow()); weekAgo.setDate(weekAgo.getDate()-7);
+  document.getElementById('soTotalRemoved').textContent = log.length;
+  document.getElementById('soToday').textContent = log.filter(e=>e.removedAt.startsWith(todayStr)).length;
+  document.getElementById('soWeek').textContent = log.filter(e=>parseLogDate(e.removedAt)>=weekAgo).length;
+  filterStockOutLog();
+}
+
+function filterStockOutLog() {
+  const fVal = document.getElementById('soDateFrom').value;
+  const tVal = document.getElementById('soDateTo').value;
+  let log = [...sessionData.stockOutLog].reverse();
+  if (fVal) { const f=new Date(fVal); f.setHours(0,0,0,0); log = log.filter(e=>parseLogDate(e.removedAt)>=f); }
+  if (tVal) { const t=new Date(tVal); t.setHours(23,59,59,999); log = log.filter(e=>parseLogDate(e.removedAt)<=t); }
+  document.getElementById('soLogBody').innerHTML = log.slice(0,300).map((e,i) => {
+    const cls = e.status==='removed'?'chip-red':'chip-yellow';
+    return `<tr>
+      <td>${i+1}</td>
+      <td style="font-family:monospace;font-weight:bold">${esc(e.barcode)}</td>
+      <td>${esc(e.fromInventory)}</td>
+      <td style="font-size:0.8rem">${esc(e.removedAt)}</td>
+      <td><span class="chip chip-yellow">${esc(e.reason||'-')}</span></td>
+      <td><span class="chip ${cls}">${e.status==='removed'?'Removed':'Not Found'}</span></td>
+    </tr>`;
+  }).join('');
+}
+function clearSOFilter() { document.getElementById('soDateFrom').value=''; document.getElementById('soDateTo').value=''; filterStockOutLog(); }
+
+function renderDashboard() {
+  const invCodes = Object.keys(sessionData.inventories);
+  let totalInStock = 0;
+  const breakdown = invCodes.map(code => {
+    const inv = sessionData.inventories[code];
+    const active = getActiveItems(code);
+    totalInStock += active.length;
+    return { code, created:inv.createdAt, total:inv.items.length, inStock:active.length, out:inv.items.length-active.length };
+  });
+  const log = sessionData.stockOutLog.filter(e=>e.status==='removed');
+  document.getElementById('dbTotalInv').textContent = invCodes.length;
+  document.getElementById('dbTotalItems').textContent = totalInStock;
+  document.getElementById('dbTotalOut').textContent = log.length;
+  document.getElementById('dbBreakdownBody').innerHTML = breakdown.map(b => `<tr><td style="font-weight:bold">${esc(b.code)}</td><td style="font-size:0.8rem">${esc(b.created)}</td><td>${b.total}</td><td><span class="chip chip-green">${b.inStock}</span></td><td><span class="chip chip-red">${b.out}</span></td></tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text2)">No inventory data</td></tr>';
+}
+
+// ===== FIND ITEM (GLOBAL LOOKUP) =====
+function renderLookup() {
+  const q = document.getElementById('lookupInput').value.trim().toLowerCase();
+  const el = document.getElementById('lookupResult');
+  if (!q) {
+    el.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><p>Scan or type a barcode...</p></div>';
+    return;
+  }
+  const matches = [];
+  for (const code of Object.keys(sessionData.inventories)) {
+    for (const item of sessionData.inventories[code].items) {
+      if (item.barcode.toLowerCase().includes(q)) {
+        const outEntry = sessionData.stockOutLog.find(x =>
+          x.status==='removed' && x.fromInventory===code &&
+          x.barcode===item.barcode && x.originalScanAt===item.scannedAt
+        );
+        matches.push({ code, item, out: !!outEntry, outEntry });
+      }
+    }
+  }
+  if (matches.length === 0) {
+    let extra = '';
+    if (sessionData.unmatchedBarcodes[q]) {
+      const u = sessionData.unmatchedBarcodes[q];
+      extra = `<div class="card" style="margin-top:12px">
+        <strong>Not in any inventory</strong>, but scanned <strong>${u.count}×</strong> as UNKNOWN in verification
+        <div style="font-size:0.8rem;color:var(--text2);margin-top:6px">First scanned: ${esc(u.firstScan)}</div>
+      </div>`;
+    }
+    el.innerHTML = `<div class="empty-state"><div class="icon">❓</div><p>No match for "${esc(q)}"</p></div>${extra}`;
+    return;
+  }
+  el.innerHTML = `<div style="font-size:0.85rem;color:var(--text2);margin-bottom:8px">${matches.length} match(es) found</div>` +
+    matches.map(m => `
+      <div class="card" style="margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <div>
+            <strong style="font-family:monospace;font-size:1.2rem">${esc(m.item.barcode)}</strong>
+            <span style="color:var(--text2);margin-left:12px">in INV <strong style="color:var(--primary)">${esc(m.code)}</strong></span>
+          </div>
+          <span class="chip ${m.out?'chip-red':'chip-green'}">${m.out?'Stocked Out':'In Stock'}</span>
+        </div>
+        <div style="font-size:0.85rem;color:var(--text2);margin-top:8px">
+          Scanned: ${esc(m.item.scannedAt)}
+          ${m.out ? ` &nbsp;·&nbsp; Removed: ${esc(m.outEntry.removedAt)} &nbsp;·&nbsp; Reason: <span class="chip chip-yellow">${esc(m.outEntry.reason||'-')}</span>` : ''}
+        </div>
+      </div>
+    `).join('');
+}
+document.getElementById('lookupInput')?.addEventListener('input', renderLookup);
+
+// ===== DATA MANAGE =====
+async function exportDatabase() {
+  const data = { _type:'LSC_WAREHOUSE_DB_BACKUP', _version:3, exportedAt:new Date().toISOString(), saudiTime:saudiDateTime(), sessionData, verifyData };
+  const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `LSC_Database_${saudiDateOnly()}.json`; a.click();
+  playInfo();
+}
+document.getElementById('dbImportFile').addEventListener('change', async function(e) {
+  const file = e.target.files[0]; if (!file) return;
+  if (!confirm('This will REPLACE all current data. Continue?')) { e.target.value=''; return; }
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (data._type !== 'LSC_WAREHOUSE_DB_BACKUP') throw new Error('Invalid file format');
+    sessionData = { ...emptySession(), ...(data.sessionData || {}) };
+    verifyData  = data.verifyData || null;
+    selectedStockOutItems.clear();
+    persistSession();
+    persistVerifyData();
+    alert('Import successful! Reloading…');
+    location.reload();
+  } catch(err) { alert('Import failed: ' + err.message); }
+  e.target.value='';
+});
+
+function exportInventoryExcel() {
+  const invCodes = Object.keys(sessionData.inventories);
+  if (invCodes.length===0 && sessionData.stockOutLog.length===0) { alert('No inventory data.'); return; }
+  const wb = XLSX.utils.book_new();
+  const invRows = [];
+  invCodes.forEach(code => { sessionData.inventories[code].items.forEach(item => {
+    invRows.push([code, item.barcode, item.scannedAt, isStockedOut(code,item.barcode,item.scannedAt)?'Stocked Out':'In Stock']);
+  }); });
+  const ws1 = XLSX.utils.aoa_to_sheet([['INV Code','Barcode','Scanned At','Status'], ...invRows]);
+  ws1['!cols'] = [{wch:20},{wch:25},{wch:22},{wch:15}];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Inventory Status');
+  const soRows = sessionData.stockOutLog.map(e => [e.barcode, e.fromInventory, e.removedAt, e.originalScanAt||'', e.reason||'', e.status==='removed'?'Removed':'Not Found']);
+  const ws2 = XLSX.utils.aoa_to_sheet([['Barcode','From Inventory','Removed At','Original Scan','Reason','Status'], ...soRows]);
+  ws2['!cols'] = [{wch:25},{wch:20},{wch:22},{wch:22},{wch:18},{wch:15}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'Stock Out Log');
+  XLSX.writeFile(wb, `LSC_Inventory_${saudiDateOnly()}.xlsx`, { cellStyles:true });
+  playInfo();
+}
+
+function getActiveItems(code) {
+  const inv = sessionData.inventories[code];
+  return inv ? inv.items.filter(item => !isStockedOut(code, item.barcode, item.scannedAt)) : [];
+}
+function isStockedOut(code, barcode, scannedAt) {
+  return sessionData.stockOutLog.some(e => e.status==='removed' && e.fromInventory===code && e.barcode===barcode && e.originalScanAt===scannedAt);
+}
+function parseLogDate(dateStr) {
+  if (!dateStr) return new Date(0);
+  const parts = dateStr.split(' ');
+  const [d,m,y] = (parts[0]||'').split('-');
+  const [hh,mm,ss] = (parts[1]||'00:00:00').split(':');
+  return new Date(y, m-1, d, hh||0, mm||0, ss||0);
+}
+function updateBadges() {
+  let total = 0; Object.values(sessionData.inventories).forEach(inv => total += inv.items.length);
+  document.getElementById('badgeInvTotal').textContent = total;
+}
+
+function clearVerifyOnly() {
+  if (!confirm('Clear ONLY the Verification data? (Inventory data stays intact)')) return;
+  sessionData.verifiedRows={}; sessionData.unmatchedBarcodes={}; sessionData.history=[]; sessionData.duplicateCount=0; sessionData.lastVerifyAction=null;
+  verifyData = null; workbookCache = null;
+  persistSession();
+  persistVerifyData();
+  location.reload();
+}
+function resetAll() {
+  if (!confirm('⚠️ DELETE ALL SYSTEM DATA?')) return;
+  if (!confirm('Are you absolutely sure? This cannot be undone.')) return;
+  try { localStorage.removeItem(LS_SESSION); localStorage.removeItem(LS_VERIFY); } catch(e){}
+  sessionData = emptySession(); verifyData = null; selectedStockOutItems.clear();
+  setTimeout(() => location.reload(), 150);
+}
+
+// ===================== INIT (localStorage load) =====================
+function init() {
+  try {
+    localStorage.setItem('__lsc_test__', '1');
+    localStorage.removeItem('__lsc_test__');
+  } catch(e) { showDbWarning(); }
+
+  try {
+    const s = localStorage.getItem(LS_SESSION);
+    if (s) sessionData = { ...emptySession(), ...JSON.parse(s) };
+  } catch(e) { console.warn('Load session failed:', e); }
+
+  try {
+    const v = localStorage.getItem(LS_VERIFY);
+    if (v) verifyData = JSON.parse(v);
+  } catch(e) { console.warn('Load verify failed:', e); }
+
+  if (verifyData) {
+    document.getElementById('verifyEmpty').classList.add('hidden');
+    document.getElementById('verifyActive').classList.remove('hidden');
+    document.getElementById('btnVerifyExport').classList.remove('hidden');
+    document.getElementById('btnVerifyUndo').classList.remove('hidden');
+    updateVerifyStats(); renderVerifyHistory();
+  }
+  refreshInvScanUI(); updateBadges(); renderLookup();
+}
+init();
 </script>
 </body>
 </html>
