@@ -181,10 +181,10 @@ td { padding:10px 16px; border-top:1px solid var(--border); }
 
     <div id="verifyActive" class="hidden">
       <div class="stats-row">
-        <div class="stat-card blue"><div class="stat-value" id="vTotal">0</div><div class="stat-label">Total Rows</div></div>
+        <div class="stat-card blue"><div class="stat-value" id="vTotal">0</div><div class="stat-label">Total Expected</div></div>
         <div class="stat-card green"><div class="stat-value" id="vScanned">0</div><div class="stat-label">Verified ✓</div></div>
         <div class="stat-card red"><div class="stat-value" id="vRemaining">0</div><div class="stat-label">Remaining</div></div>
-        <div class="stat-card yellow"><div class="stat-value" id="vDuplicates">0</div><div class="stat-label">Duplicates</div></div>
+        <div class="stat-card yellow"><div class="stat-value" id="vDuplicates">0</div><div class="stat-label">Extras</div></div>
         <div class="stat-card"><div class="stat-value" id="vUnmatched" style="color:var(--warning)">0</div><div class="stat-label">Unknown</div></div>
       </div>
 
@@ -363,7 +363,7 @@ let verifyData = null;
 let selectedStockOutItems = new Set();
 
 function emptySession() {
-  return { verifiedRows:{}, unmatchedBarcodes:{}, history:[], duplicateCount:0,
+  return { scannedQty:{}, lastScanTime:{}, unmatchedBarcodes:{}, history:[], duplicateCount:0,
     inventories:{}, stockOutLog:[], currentInventoryCode:null, lastVerifyAction:null };
 }
 
@@ -381,7 +381,7 @@ function toggleTheme() {
   document.getElementById('themeBtn').innerHTML = isLightMode ? '☀️ Light Mode' : '🌙 Dark Mode';
 }
 
-// ===================== AUDIO (loud, instant, pre-unlocked) =====================
+// ===================== AUDIO =====================
 function unlockAudio() {
   if (!audioCtx) {
     try {
@@ -616,10 +616,52 @@ function detectDateColumn(headers) {
   return idx !== -1 ? idx : lower.findIndex(h => h.includes('date'));
 }
 
+// Helper to get the expected map for backward compatibility and performance
+function getExpectedMap() {
+  if (!verifyData) return {};
+  if (verifyData.expectedQtyMap) return verifyData.expectedQtyMap;
+  const map = {};
+  verifyData.rows.forEach(row => {
+    const bc = row[verifyData.barcodeCol];
+    if (!bc) return;
+    let q = 1;
+    if (verifyData.qtyCol !== undefined && verifyData.qtyCol !== -1) {
+      const parsed = parseInt(row[verifyData.qtyCol]);
+      if (!isNaN(parsed) && parsed > 0) q = parsed;
+    }
+    map[bc] = (map[bc] || 0) + q;
+  });
+  verifyData.expectedQtyMap = map;
+  persistVerifyData();
+  return map;
+}
+
 function finishVerifyLoad(headers, rows, barcodeCol, dateCol, sheetName, fileName) {
-  verifyData = { headers, rows, barcodeCol, dateCol, sheetName, fileName };
-  sessionData.verifiedRows = {}; sessionData.unmatchedBarcodes = {};
-  sessionData.history = []; sessionData.duplicateCount = 0; sessionData.lastVerifyAction = null;
+  const qtyCol = detectColumn(headers, [
+    ['quantity', 'qty', 'physicsl qty', 'physical qty', 'count']
+  ]);
+
+  verifyData = { headers, rows, barcodeCol, dateCol, sheetName, fileName, qtyCol };
+  
+  // Pre-calculate expected quantities
+  verifyData.expectedQtyMap = {};
+  rows.forEach(row => {
+    const bc = row[barcodeCol];
+    if (!bc) return;
+    let q = 1;
+    if (qtyCol !== -1) {
+      const parsed = parseInt(row[qtyCol]);
+      if (!isNaN(parsed) && parsed > 0) q = parsed;
+    }
+    verifyData.expectedQtyMap[bc] = (verifyData.expectedQtyMap[bc] || 0) + q;
+  });
+
+  sessionData.scannedQty = {};
+  sessionData.lastScanTime = {};
+  sessionData.unmatchedBarcodes = {};
+  sessionData.history = [];
+  sessionData.duplicateCount = 0;
+  sessionData.lastVerifyAction = null;
 
   document.getElementById('verifyEmpty').classList.add('hidden');
   document.getElementById('verifyActive').classList.remove('hidden');
@@ -648,30 +690,30 @@ function processVerifyScan(barcode) {
   if (!verifyData) return;
   unlockAudio();
 
-  const { rows, barcodeCol } = verifyData;
-  const matchingRows = [];
-  rows.forEach((row, idx) => { if (row[barcodeCol] === barcode) matchingRows.push(idx); });
-
-  const totalMatches = matchingRows.length;
+  const expectedQty = getExpectedMap()[barcode] || 0;
+  const currentScanned = sessionData.scannedQty[barcode] || 0;
   let result, info;
   const undoData = { barcode };
 
-  if (totalMatches === 0) {
+  if (expectedQty === 0) {
     if (!sessionData.unmatchedBarcodes[barcode]) sessionData.unmatchedBarcodes[barcode] = { count:1, firstScan: saudiDateTime() };
     else sessionData.unmatchedBarcodes[barcode].count++;
     result = 'UNKNOWN'; info = 'Not in sheet';
     playError(); flash('orange'); showToast('UNKNOWN', 'unknown');
   } else {
-    const unverifiedRow = matchingRows.find(idx => !sessionData.verifiedRows[idx]);
-    if (unverifiedRow !== undefined) {
-      sessionData.verifiedRows[unverifiedRow] = saudiDateTime();
-      const verifiedCount = matchingRows.filter(idx => sessionData.verifiedRows[idx]).length;
-      result = 'TRUE'; info = totalMatches > 1 ? `Unit ${verifiedCount} of ${totalMatches}` : 'Verified';
-      undoData.rowIdx = unverifiedRow;
-      playSuccess(); flash('green'); showToast(totalMatches > 1 ? `✓ ${verifiedCount}/${totalMatches}` : '✓ TRUE', 'true');
+    if (currentScanned < expectedQty) {
+      sessionData.scannedQty[barcode] = currentScanned + 1;
+      sessionData.lastScanTime[barcode] = saudiDateTime();
+      result = 'TRUE'; 
+      info = expectedQty > 1 ? `Unit ${currentScanned + 1} of ${expectedQty}` : 'Verified';
+      undoData.prevResult = 'TRUE';
+      playSuccess(); flash('green'); showToast(expectedQty > 1 ? `✓ ${currentScanned + 1}/${expectedQty}` : '✓ TRUE', 'true');
     } else {
+      sessionData.scannedQty[barcode] = currentScanned + 1;
+      sessionData.lastScanTime[barcode] = saudiDateTime();
       sessionData.duplicateCount++;
-      result = 'DUPLICATE'; info = `All ${totalMatches} already verified (EXTRA)`;
+      result = 'DUPLICATE'; info = `All ${expectedQty} already verified (EXTRA)`;
+      undoData.prevResult = 'DUPLICATE';
       playExtra(); flash('orange'); showToast('EXTRA!', 'dup');
     }
   }
@@ -692,9 +734,11 @@ function undoLastVerifyScan() {
   const a = sessionData.lastVerifyAction;
   if (!a) { showToast('Nothing to undo', 'dup', 900); playError(); return; }
 
-  if (a.result === 'TRUE' && a.rowIdx !== undefined) {
-    delete sessionData.verifiedRows[a.rowIdx];
+  if (a.result === 'TRUE') {
+    if (sessionData.scannedQty[a.barcode] > 0) sessionData.scannedQty[a.barcode]--;
+    if (sessionData.scannedQty[a.barcode] === 0) delete sessionData.scannedQty[a.barcode];
   } else if (a.result === 'DUPLICATE') {
+    if (sessionData.scannedQty[a.barcode] > 0) sessionData.scannedQty[a.barcode]--;
     sessionData.duplicateCount = Math.max(0, sessionData.duplicateCount - 1);
   } else if (a.result === 'UNKNOWN') {
     const u = sessionData.unmatchedBarcodes[a.barcode];
@@ -727,15 +771,26 @@ function showLastVerifyScan(barcode, result, info) {
 
 function updateVerifyStats() {
   if (!verifyData) return;
-  const total = verifyData.rows.length;
-  const scanned = Object.keys(sessionData.verifiedRows).length;
-  const unmatched = Object.keys(sessionData.unmatchedBarcodes).length;
+  const expectedMap = getExpectedMap();
+  
+  let total = 0;
+  Object.values(expectedMap).forEach(q => total += q);
+  
+  let cappedScanned = 0;
+  Object.keys(sessionData.scannedQty || {}).forEach(bc => {
+    const q = sessionData.scannedQty[bc];
+    const expected = expectedMap[bc] || 0;
+    cappedScanned += Math.min(q, expected);
+  });
+
+  const unmatched = Object.keys(sessionData.unmatchedBarcodes || {}).length;
+  
   document.getElementById('vTotal').textContent = total;
-  document.getElementById('vScanned').textContent = scanned;
-  document.getElementById('vRemaining').textContent = total - scanned;
-  document.getElementById('vDuplicates').textContent = sessionData.duplicateCount;
+  document.getElementById('vScanned').textContent = cappedScanned;
+  document.getElementById('vRemaining').textContent = Math.max(0, total - cappedScanned);
+  document.getElementById('vDuplicates').textContent = sessionData.duplicateCount || 0;
   document.getElementById('vUnmatched').textContent = unmatched;
-  document.getElementById('vProgress').style.width = total ? (scanned/total*100)+'%' : '0%';
+  document.getElementById('vProgress').style.width = total ? (cappedScanned/total*100)+'%' : '0%';
 }
 
 function renderVerifyHistory() {
@@ -752,31 +807,16 @@ function renderVerifyHistory() {
 }
 
 // =====================================================================
-// EXPORT — Removed 'physicsl qty', 'INV DATE', and 'Remarks' columns.
-// Everything else remains exactly the same.
+// EXPORT — utilizes QTY column, separates TRUE, MISSING (FALSE), EXTRA.
+// Drops original QTY/Remarks columns to avoid duplication.
 // =====================================================================
 function exportVerifyExcel() {
   if (!verifyData) { alert('No data loaded.'); return; }
   const { headers, rows, barcodeCol } = verifyData;
+  const expectedMap = getExpectedMap();
 
-  // Count over-scans (EXTRA) per barcode from history
-  const extrasByBarcode = {};
-  sessionData.history.forEach(h => {
-    if (h.result === 'DUPLICATE') {
-      extrasByBarcode[h.barcode] = (extrasByBarcode[h.barcode] || 0) + 1;
-    }
-  });
-
-  // Group rows by barcode (preserve first-seen order)
-  const groups = new Map();
-  rows.forEach((row, idx) => {
-    const bc = row[barcodeCol];
-    if (!groups.has(bc)) groups.set(bc, { firstRow: row, indices: [] });
-    groups.get(bc).indices.push(idx);
-  });
-
-  // --- FILTER OUT SPECIFIC COLUMNS ---
-  const dropHeaders = ['physicsl qty', 'inv date'];
+  // Filter out specific original columns to prevent duplication with our standardized output
+  const dropHeaders = ['physicsl qty', 'inv date', 'quantity', 'qty', 'physical qty', 'count', 'remarks'];
   const keepIndices = [];
   const newOriginalHeaders = [];
   
@@ -789,79 +829,84 @@ function exportVerifyExcel() {
   });
 
   const newBarcodeCol = keepIndices.indexOf(barcodeCol);
-  // -----------------------------------
-
-  // Appended columns (Remarks removed)
-  const exportHeaders = [...newOriginalHeaders, 'Quantity', 'Scan Result', 'Last Scan Time'];
-  const qtyCol     = newOriginalHeaders.length;
-  const resultCol  = newOriginalHeaders.length + 1;
-  const timeCol    = newOriginalHeaders.length + 2;
+  
+  // Standardized appended columns
+  const exportHeaders = [...newOriginalHeaders, 'Quantity', 'Scan Result', 'Remarks', 'Last Scan Time'];
+  const qtyColOut     = newOriginalHeaders.length;
+  const resultColOut  = newOriginalHeaders.length + 1;
+  const remarksColOut = newOriginalHeaders.length + 2;
+  const timeColOut    = newOriginalHeaders.length + 3;
 
   const exportRows = [];
 
-  for (const [bc, group] of groups) {
-    const expected = group.indices.length;
-    const verified = group.indices.filter(i => sessionData.verifiedRows[i]).length;
-    const extras   = extrasByBarcode[bc] || 0;
-
-    const latestTrue  = (sessionData.history.find(h => h.barcode === bc && h.result === 'TRUE') || {}).time || '';
-    const latestExtra = (sessionData.history.find(h => h.barcode === bc && h.result === 'DUPLICATE') || {}).time || '';
+  // Iterate over all barcodes in the expected map
+  Object.keys(expectedMap).forEach(bc => {
+    const expected = expectedMap[bc];
+    const scanned = sessionData.scannedQty ? (sessionData.scannedQty[bc] || 0) : 0;
+    
+    const firstRowIdx = rows.findIndex(r => r[barcodeCol] === bc);
+    const originalData = firstRowIdx !== -1 ? rows[firstRowIdx] : [];
+    const latestTrue = sessionData.lastScanTime ? (sessionData.lastScanTime[bc] || '') : '';
 
     const makeRow = (withOrig) => {
       const r = new Array(exportHeaders.length).fill('');
-      if (withOrig) {
+      if (withOrig && firstRowIdx !== -1) {
         keepIndices.forEach((origIdx, newIdx) => {
-          r[newIdx] = group.firstRow[origIdx] != null ? group.firstRow[origIdx] : '';
+          r[newIdx] = originalData[origIdx] != null ? originalData[origIdx] : '';
         });
       } else {
-        if (newBarcodeCol !== -1) {
-          r[newBarcodeCol] = bc;
-        }
+        if (newBarcodeCol !== -1) r[newBarcodeCol] = bc;
       }
       return r;
     };
 
     let firstRow = true;
 
-    // TRUE row — how many were scanned
-    if (verified > 0) {
+    const goodScans = Math.min(scanned, expected);
+    const missing = Math.max(0, expected - scanned);
+    const extras = Math.max(0, scanned - expected);
+
+    // 1. TRUE Row (Scanned OK)
+    if (goodScans > 0) {
       const r = makeRow(firstRow);
-      r[qtyCol] = verified;
-      r[resultCol] = 'TRUE';
-      r[timeCol] = latestTrue;
+      r[qtyColOut] = goodScans;
+      r[resultColOut] = 'TRUE';
+      r[timeColOut] = latestTrue;
       exportRows.push(r);
       firstRow = false;
     }
 
-    // FALSE row — how many remain unscanned
-    if (verified < expected) {
+    // 2. FALSE Row (Missing)
+    if (missing > 0) {
       const r = makeRow(firstRow);
-      r[qtyCol] = expected - verified;
-      r[resultCol] = 'FALSE';
+      r[qtyColOut] = missing;
+      r[resultColOut] = 'FALSE';
+      r[remarksColOut] = 'MISSING';
       exportRows.push(r);
       firstRow = false;
     }
 
-    // EXTRA row — over-scans beyond expected quantity
+    // 3. EXTRA Row (Over-scanned)
     if (extras > 0) {
       const r = makeRow(firstRow);
-      r[qtyCol] = extras;
-      r[resultCol] = 'EXTRA';
-      r[timeCol] = latestExtra;
+      r[qtyColOut] = extras;
+      r[resultColOut] = 'EXTRA';
+      r[remarksColOut] = 'EXTRA';
+      r[timeColOut] = latestTrue;
       exportRows.push(r);
       firstRow = false;
     }
-  }
+  });
 
   // Unknown barcodes
-  Object.entries(sessionData.unmatchedBarcodes).forEach(([bc, data]) => {
+  const unmatched = sessionData.unmatchedBarcodes || {};
+  Object.entries(unmatched).forEach(([bc, data]) => {
     const r = new Array(exportHeaders.length).fill('');
-    if (newBarcodeCol !== -1) {
-      r[newBarcodeCol] = bc;
-    }
-    r[qtyCol] = data.count;
-    r[resultCol] = 'UNKNOWN';
-    r[timeCol] = data.firstScan;
+    if (newBarcodeCol !== -1) r[newBarcodeCol] = bc;
+    r[qtyColOut] = data.count;
+    r[resultColOut] = 'UNKNOWN';
+    r[remarksColOut] = 'Not in sheet';
+    r[timeColOut] = data.firstScan;
     exportRows.push(r);
   });
 
@@ -873,7 +918,7 @@ function exportVerifyExcel() {
 
   exportRows.forEach((row, ri) => {
     const excelRow = ri + 1;
-    const scanResult = row[resultCol];
+    const scanResult = row[resultColOut];
     let rowStyle = { alignment:{horizontal:'center'} };
     if (scanResult === 'TRUE') {
       rowStyle.fill = {fgColor:{rgb:'C6EFCE'}}; rowStyle.font = {color:{rgb:'006100'}, bold:true};
@@ -891,7 +936,7 @@ function exportVerifyExcel() {
     });
   });
 
-  ws['!cols'] = exportHeaders.map((h,i) => ({ wch: Math.max(h.length+2, i===newBarcodeCol?20:(i===timeCol?22:14)) }));
+  ws['!cols'] = exportHeaders.map((h,i) => ({ wch: Math.max(h.length+2, i===newBarcodeCol?20:(i===timeColOut?22:14)) }));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Verification');
   XLSX.writeFile(wb, `LSC_Verification_${saudiDateOnly()}.xlsx`, { cellStyles:true });
@@ -1319,7 +1364,7 @@ function updateBadges() {
 
 function clearVerifyOnly() {
   if (!confirm('Clear ONLY the Verification data? (Inventory data stays intact)')) return;
-  sessionData.verifiedRows={}; sessionData.unmatchedBarcodes={}; sessionData.history=[]; sessionData.duplicateCount=0; sessionData.lastVerifyAction=null;
+  sessionData.scannedQty={}; sessionData.lastScanTime={}; sessionData.unmatchedBarcodes={}; sessionData.history=[]; sessionData.duplicateCount=0; sessionData.lastVerifyAction=null;
   verifyData = null; workbookCache = null;
   persistSession();
   persistVerifyData();
